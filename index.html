@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>EPI MACBOOT - Gestão Profissional</title>
     
-    <!-- PWA -->
+    <!-- PWA Config -->
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -28,12 +28,11 @@
         }
     </script>
     
-    <!-- 2. Bibliotecas Essenciais (Carregamento Robusto) -->
-    <!-- React -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+    <!-- 2. Bibliotecas (Versões de Desenvolvimento para melhor debug) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -58,7 +57,8 @@
 
     <div id="global-error">
         <h2 class="text-2xl font-bold mb-2">Erro de Carregamento</h2>
-        <p>O sistema não conseguiu iniciar. Verifique a sua ligação ou se o script foi bloqueado.</p>
+        <p>Ocorreu um erro ao iniciar a aplicação.</p>
+        <pre id="error-msg" class="mt-4 p-4 bg-white border border-red-200 rounded text-sm overflow-auto"></pre>
         <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-red-600 text-white rounded">Recarregar</button>
     </div>
 
@@ -69,9 +69,17 @@
     
     <div id="root"></div>
 
-    <script type="text/babel" data-presets="react">
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            document.getElementById('initial-loader').style.display = 'none';
+            document.getElementById('global-error').style.display = 'block';
+            document.getElementById('error-msg').innerText = msg + "\nLinha: " + line;
+        };
+    </script>
+
+    <script type="text/babel">
         // ==========================================
-        // CONFIGURAÇÃO FIREBASE (PRODUÇÃO)
+        // CONFIGURAÇÃO FIREBASE
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyDX7Tlvz3g9cbQW01IMYsEp3GQ9B825aYI",
@@ -82,7 +90,6 @@
             appId: "1:1088262046750:web:6d6250e1d1cd020ade5a0f"
         };
 
-        // Inicialização Segura
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
@@ -90,7 +97,6 @@
         const db = firebase.firestore();
         const appId = 'episystem-macboot-v1';
 
-        // Hooks React Globais
         const { useState, useEffect, useRef } = React;
 
         // ==========================================
@@ -133,12 +139,14 @@
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
                     <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden p-8 text-center space-y-6">
                         <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto"><Icon name="Lock" size={32} /></div>
-                        <div><h3 className="text-2xl font-bold text-slate-900">Ação Bloqueada</h3><p className="text-slate-500 mt-2">O Firebase impediu esta alteração (Excluir/Gravar).</p></div>
+                        <div><h3 className="text-2xl font-bold text-slate-900">Acesso Bloqueado</h3><p className="text-slate-500 mt-2">O Firebase está impedindo alterações. Verifique as regras.</p></div>
                         <div className="bg-slate-50 p-4 rounded-xl text-left text-sm space-y-2 border border-slate-200">
-                            <p><strong>Solução:</strong> Vá à consola do Firebase > Firestore > Rules e coloque:</p>
-                            <code className="block bg-slate-800 text-green-400 p-2 rounded text-xs">allow read, write: if request.auth != null;</code>
+                            <p><strong>Para corrigir o erro de "Excluir" ou "Salvar":</strong></p>
+                            <p>1. Vá ao Console Firebase > Firestore Database > Rules.</p>
+                            <p>2. Altere para:</p>
+                            <code className="block bg-slate-800 text-green-400 p-2 rounded text-xs overflow-x-auto">allow read, write: if request.auth != null;</code>
                         </div>
-                        <button onClick={() => window.location.reload()} className="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors uppercase text-sm">Entendi</button>
+                        <button onClick={() => window.location.reload()} className="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors uppercase tracking-widest text-sm">Recarregar</button>
                     </div>
                 </div>
             );
@@ -360,6 +368,28 @@
                 } catch(e) { if(e.code==='permission-denied') setPermissionError(true); }
             };
 
+            const signPendingDelivery = async (signature) => {
+                if (!pendingDeliveryToSign) return;
+                try {
+                    await db.collection('artifacts').doc(appId).collection('deliveries').doc(pendingDeliveryToSign.id)
+                        .update({ signature, status: 'signed', signedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    setSignatureModalOpen(false); setPendingDeliveryToSign(null);
+                } catch (err) { if (err.code === 'permission-denied') setPermissionError(true); else alert("Erro: " + err.message); }
+            };
+
+            const handleLogout = () => { auth.signOut(); };
+
+            const employeeOptions = employees.map(e => ({ value: e.id, label: e.name, main: e.name, sub: `${e.role} - ${e.sector}` }));
+            const epiOptions = inventory.filter(i => i.quantity > 0).map(i => ({ value: i.id, label: i.name, main: i.name, sub: `CA: ${i.ca} | Disp: ${i.quantity}` }));
+
+            const SidebarItem = ({ icon, label, id, count }) => (
+                <button onClick={() => { setView(id); setSidebarOpen(false); setSelectedEmployeeForReport(null); }} className={`flex items-center justify-between w-full px-4 py-3 text-sm font-medium rounded-lg transition-all mb-1 ${view === id ? 'bg-brand-700 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>
+                    <div className="flex items-center gap-3"><Icon name={icon} size={18} /> {label}</div>
+                    {count > 0 && <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{count}</span>}
+                </button>
+            );
+
+            // Se não houver utilizador e o carregamento terminou, mostra Login
             if(!user) return <LoginScreen />;
 
             return (
@@ -367,17 +397,17 @@
                     <PermissionModal isOpen={permissionError} onClose={()=>setPermissionError(false)} />
                     
                     {/* SIDEBAR */}
-                    <aside className={`fixed inset-y-0 z-50 w-64 bg-white border-r border-slate-200 transition-transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+                    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transition-transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
                         <div className="h-16 flex items-center px-6 border-b border-slate-100 font-bold text-brand-900 gap-2"><Icon name="ShieldCheck" size={24}/> EPI MACBOOT</div>
                         <nav className="p-4 space-y-1">
-                            <button onClick={()=>setView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${view==='dashboard'?'bg-brand-700 text-white':'text-slate-600 hover:bg-slate-50'}`}><Icon name="ClipboardCheck"/> Visão Geral</button>
-                            <button onClick={()=>setView('employees')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${view==='employees'?'bg-brand-700 text-white':'text-slate-600 hover:bg-slate-50'}`}><Icon name="UserPlus"/> Colaboradores</button>
-                            <button onClick={()=>setView('inventory')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${view==='inventory'?'bg-brand-700 text-white':'text-slate-600 hover:bg-slate-50'}`}><Icon name="Package"/> Estoque</button>
-                            <div className="pt-4 mt-4 border-t border-slate-100">
-                                <button onClick={()=>toggleModal('delivery', true)} className="w-full flex items-center gap-3 px-4 py-3 bg-brand-50 text-brand-700 rounded-lg text-sm font-bold hover:bg-brand-100"><Icon name="Plus"/> Nova Entrega</button>
-                                <button onClick={()=>setView('pending-signatures')} className={`w-full flex items-center gap-3 px-4 py-3 mt-1 rounded-lg text-sm font-medium ${view==='pending-signatures'?'bg-brand-700 text-white':'text-slate-600 hover:bg-slate-50'}`}><Icon name="Clock"/> Pendências {deliveries.filter(d=>d.status==='pending').length > 0 && <span className="ml-auto bg-red-500 text-white px-2 rounded-full text-xs">{deliveries.filter(d=>d.status==='pending').length}</span>}</button>
-                                <button onClick={()=>setView('reports')} className={`w-full flex items-center gap-3 px-4 py-3 mt-1 rounded-lg text-sm font-medium ${view==='reports'?'bg-brand-700 text-white':'text-slate-600 hover:bg-slate-50'}`}><Icon name="FileText"/> Relatórios</button>
-                            </div>
+                            <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-2">Gestão</p>
+                            <SidebarItem icon="ClipboardCheck" label="Visão Geral" id="dashboard" />
+                            <SidebarItem icon="UserPlus" label="Colaboradores" id="employees" />
+                            <SidebarItem icon="Package" label="Estoque de EPIs" id="inventory" />
+                            <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-6">Operacional</p>
+                            <button onClick={()=>toggleModal('delivery', true)} className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-brand-700 bg-brand-50 rounded-lg hover:bg-brand-100 border border-brand-100 transition-all mb-1"><Icon name="Plus" size={18} /> Nova Entrega</button>
+                            <SidebarItem icon="Clock" label="Assinaturas" id="pending-signatures" count={deliveries.filter(d=>d.status==='pending').length} />
+                            <SidebarItem icon="FileText" label="Relatórios" id="reports" />
                         </nav>
                         <div className="absolute bottom-0 w-full p-4 border-t border-slate-100"><button onClick={()=>auth.signOut()} className="w-full flex items-center justify-center gap-2 py-2 text-red-600 text-xs font-bold hover:bg-red-50 rounded-lg"><Icon name="LogOut"/> Sair</button></div>
                     </aside>
@@ -515,10 +545,8 @@
             );
         }
 
-        window.onload = () => {
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(<App />);
-        };
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
