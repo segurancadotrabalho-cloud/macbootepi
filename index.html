@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPI PRO - Sistema de Gestão</title>
+    
+    <!-- 1. Tailwind CSS (Estilos) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Babel (Para entender React no navegador) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Estilos de impressão e scroll -->
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            .print-content, .print-content * { visibility: visible; }
+            .print-content { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    
+    <!-- Onde o App vai ser renderizado -->
+    <div id="root"></div>
+
+    <!-- 3. O Código do App -->
+    <script type="text/babel" data-type="module">
+        // Importações via CDN (Sem Node.js)
+        import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        
+        // Ícones Lucide
+        import { 
+            UserPlus, Package, ClipboardCheck, FileText, Plus, Download, Trash2, 
+            CheckCircle, Menu, X, User, ShieldCheck, Search, Upload, ArrowLeft, 
+            Printer, AlertTriangle, ShoppingCart, MinusCircle, PenLine, Clock 
+        } from 'https://esm.sh/lucide-react@0.292.0';
+
+        // Firebase Imports (Modular Web v9+)
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+        import { 
+            getFirestore, collection, doc, addDoc, deleteDoc, updateDoc, 
+            onSnapshot, query, Timestamp, getDocs 
+        } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+
+        // --- CONFIGURAÇÃO FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDX7Tlvz3g9cbQW01IMYsEp3GQ9B825aYI",
+            authDomain: "episystem-30cae.firebaseapp.com",
+            projectId: "episystem-30cae",
+            storageBucket: "episystem-30cae.firebasestorage.app",
+            messagingSenderId: "1088262046750",
+            appId: "1:1088262046750:web:6d6250e1d1cd020ade5a0f"
+        };
+
+        // Inicialização
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'episystem-production-v1';
+
+        // --- COMPONENTE MODAL ---
+        const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-2xl" }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className={`bg-white w-full ${maxWidth} rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}>
+                        <div className="p-6 bg-blue-600 text-white flex justify-between items-center shrink-0">
+                            <h4 className="font-bold text-xl flex items-center gap-2 tracking-tight">{title}</h4>
+                            <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-full transition-colors"><X size={24} /></button>
+                        </div>
+                        <div className="p-8 overflow-y-auto">
+                            {children}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- COMPONENTE DE ASSINATURA ---
+        const SignaturePad = ({ onSave, onCancel }) => {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    const canvas = canvasRef.current;
+                    if (!canvas) return;
+                    
+                    const ctx = canvas.getContext('2d');
+                    const ratio = window.devicePixelRatio || 1;
+                    const rect = canvas.getBoundingClientRect();
+                    
+                    if (rect.width === 0) return;
+
+                    canvas.width = rect.width * ratio;
+                    canvas.height = rect.height * ratio;
+                    
+                    ctx.scale(ratio, ratio);
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.strokeStyle = '#000';
+                }, 100);
+                return () => clearTimeout(timer);
+            }, []);
+
+            const getPos = (e) => {
+                const canvas = canvasRef.current;
+                if (!canvas) return { x: 0, y: 0 };
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - rect.left, y: clientY - rect.top };
+            };
+
+            const startDrawing = (e) => {
+                const ctx = canvasRef.current.getContext('2d');
+                const { x, y } = getPos(e);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                canvasRef.current.isDrawing = true;
+            };
+
+            const draw = (e) => {
+                if (!canvasRef.current.isDrawing) return;
+                if (e.cancelable) e.preventDefault();
+                const ctx = canvasRef.current.getContext('2d');
+                const { x, y } = getPos(e);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            };
+
+            const stopDrawing = () => {
+                if (canvasRef.current) canvasRef.current.isDrawing = false;
+            };
+
+            const clear = () => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            };
+
+            const handleSave = () => {
+                onSave(canvasRef.current.toDataURL('image/png'));
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-gray-50 p-1 rounded-2xl border-2 border-gray-100 overflow-hidden relative touch-none">
+                        <canvas
+                            ref={canvasRef}
+                            onMouseDown={startDrawing}
+                            onMouseMove={draw}
+                            onMouseUp={stopDrawing}
+                            onMouseOut={stopDrawing}
+                            onTouchStart={startDrawing}
+                            onTouchMove={draw}
+                            onTouchEnd={stopDrawing}
+                            className="w-full h-48 bg-white cursor-crosshair block"
+                            style={{ width: '100%', height: '12rem' }}
+                        />
+                        <p className="absolute bottom-2 right-2 text-[10px] text-gray-300 pointer-events-none">Área de Assinatura</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row justify-between gap-4">
+                        <button onClick={clear} className="px-6 py-3 text-red-600 hover:bg-red-50 rounded-xl font-bold border border-red-100">Limpar</button>
+                        <div className="flex gap-2">
+                            <button onClick={onCancel} className="px-6 py-3 text-gray-500 hover:bg-gray-100 rounded-xl font-bold">Cancelar</button>
+                            <button onClick={handleSave} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg active:scale-95 transition-all">Confirmar Assinatura</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- APLICAÇÃO PRINCIPAL ---
+        function App() {
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('dashboard');
+            const [employees, setEmployees] = useState([]);
+            const [inventory, setInventory] = useState([]);
+            const [deliveries, setDeliveries] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [isSidebarOpen, setSidebarOpen] = useState(false);
+
+            // Importação e Seleção
+            const [selectedEmployees, setSelectedEmployees] = useState([]);
+            const [selectedInventory, setSelectedInventory] = useState([]);
+            const [showImportEmployees, setShowImportEmployees] = useState(false);
+            const [showImportInventory, setShowImportInventory] = useState(false);
+            const [importText, setImportText] = useState('');
+
+            // Relatórios e Modais
+            const [selectedEmployeeForReport, setSelectedEmployeeForReport] = useState(null);
+            const [isDeliveryModalOpen, setDeliveryModalOpen] = useState(false);
+            const [isSignatureModalOpen, setSignatureModalOpen] = useState(false);
+            const [pendingDeliveryToSign, setPendingDeliveryToSign] = useState(null);
+            
+            // Carrinho
+            const [deliveryEmployeeId, setDeliveryEmployeeId] = useState('');
+            const [currentEpiSelection, setCurrentEpiSelection] = useState({ id: '', qty: 1 });
+            const [deliveryCart, setDeliveryCart] = useState([]);
+
+            // 1. Auth e Dados
+            useEffect(() => {
+                const initAuth = async () => {
+                    try { await signInAnonymously(auth); } catch(e) { console.error(e); }
+                };
+                initAuth();
+                return onAuthStateChanged(auth, setUser);
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+                const unsubEmp = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), 
+                    s => setEmployees(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                const unsubInv = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'inventory'), 
+                    s => setInventory(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                const unsubDel = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'deliveries'), 
+                    s => {
+                        const data = s.docs.map(d => ({id: d.id, ...d.data()}));
+                        setDeliveries(data.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
+                        setLoading(false);
+                    });
+                return () => { unsubEmp(); unsubInv(); unsubDel(); };
+            }, [user]);
+
+            // Funções
+            const deleteItem = async (col, id) => {
+                if(confirm("Excluir item permanentemente?")) 
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id));
+            };
+
+            const handleImport = async (type) => {
+                const lines = importText.split('\n').filter(l => l.trim());
+                for (const line of lines) {
+                    const p = line.split(/[,;\t]/).map(s => s.trim());
+                    try {
+                        if (type === 'employees' && p.length >= 3) {
+                            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), { name: p[0], role: p[1], sector: p[2], createdAt: Timestamp.now() });
+                        } else if (type === 'inventory' && p.length >= 4) {
+                            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'inventory'), { name: p[0], complement: p[1], ca: p[2], quantity: parseInt(p[3]) || 0, createdAt: Timestamp.now() });
+                        }
+                    } catch(e) { console.error(e); }
+                }
+                setImportText(''); setShowImportEmployees(false); setShowImportInventory(false);
+            };
+
+            const addToCart = () => {
+                const epi = inventory.find(i => i.id === currentEpiSelection.id);
+                if (!epi || epi.quantity < currentEpiSelection.qty) return alert("Estoque insuficiente!");
+                setDeliveryCart([...deliveryCart, { ...epi, qty: parseInt(currentEpiSelection.qty) }]);
+                setCurrentEpiSelection({ id: '', qty: 1 });
+            };
+
+            const processDeliveryBatch = async (signature = null) => {
+                const employee = employees.find(e => e.id === deliveryEmployeeId);
+                if (!employee || deliveryCart.length === 0) return;
+                try {
+                    for (const item of deliveryCart) {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'deliveries'), {
+                            employeeId: employee.id, employeeName: employee.name, employeeRole: employee.role, employeeSector: employee.sector,
+                            epiId: item.id, epiName: item.name, epiCA: item.ca, quantityDelivered: item.qty,
+                            signature: signature, status: signature ? 'signed' : 'pending', createdAt: Timestamp.now()
+                        });
+                        const epiRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', item.id);
+                        await updateDoc(epiRef, { quantity: item.quantity - item.qty });
+                    }
+                    setDeliveryCart([]); setDeliveryEmployeeId(''); setDeliveryModalOpen(false); setSignatureModalOpen(false);
+                    if (signature) { setSelectedEmployeeForReport(employee); setView('reports'); }
+                    else { setView('pending-signatures'); }
+                } catch(e) { console.error(e); }
+            };
+
+            const signPendingDelivery = async (signature) => {
+                if (!pendingDeliveryToSign) return;
+                const delRef = doc(db, 'artifacts', appId, 'public', 'data', 'deliveries', pendingDeliveryToSign.id);
+                await updateDoc(delRef, { signature, status: 'signed', signedAt: Timestamp.now() });
+                setSignatureModalOpen(false); setPendingDeliveryToSign(null);
+            };
+
+            // Layout
+            const NavItem = ({ icon: Icon, label, viewId, count = 0 }) => (
+                <button onClick={() => { setView(viewId); setSidebarOpen(false); setSelectedEmployeeForReport(null); }} className={`flex items-center justify-between w-full p-3 rounded-xl transition-all ${view === viewId ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-600 hover:bg-blue-50'}`}>
+                    <div className="flex items-center space-x-3"><Icon size={20} /><span className="font-bold">{label}</span></div>
+                    {count > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{count}</span>}
+                </button>
+            );
+
+            if (loading) return <div className="h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
+
+            return (
+                <div className="flex h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
+                    <aside className={`fixed inset-0 z-50 lg:static lg:flex flex-col w-72 bg-white border-r border-gray-200 p-6 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                        <div className="flex items-center justify-between mb-10">
+                            <h1 className="text-2xl font-black text-blue-800 flex items-center gap-2 tracking-tighter"><ShieldCheck size={32} /> EPI PRO</h1>
+                            <button className="lg:hidden" onClick={() => setSidebarOpen(false)}><X /></button>
+                        </div>
+                        <nav className="space-y-2 flex-1 overflow-y-auto">
+                            <NavItem icon={ClipboardCheck} label="Painel Geral" viewId="dashboard" />
+                            <NavItem icon={UserPlus} label="Colaboradores" viewId="employees" />
+                            <NavItem icon={Package} label="Estoque Central" viewId="inventory" />
+                            <NavItem icon={Clock} label="Pendências" viewId="pending-signatures" count={deliveries.filter(d => d.status === 'pending').length} />
+                            <div className="pt-4 border-t border-gray-100 mt-4 space-y-2">
+                                <button onClick={() => setDeliveryModalOpen(true)} className="flex items-center gap-2 w-full p-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all shadow-lg active:scale-95"><Plus size={20} /> Nova Entrega</button>
+                                <NavItem icon={FileText} label="Fichas Individuais" viewId="reports" />
+                            </div>
+                        </nav>
+                        <div className="mt-auto pt-6 border-t border-gray-100 text-xs text-gray-400 text-center"><p>Versão Web 3.0</p></div>
+                    </aside>
+
+                    <main className="flex-1 flex flex-col overflow-hidden bg-white/50 backdrop-blur-sm">
+                        <header className="h-20 border-b border-gray-200 flex items-center justify-between px-8 bg-white/80 no-print">
+                            <button className="lg:hidden" onClick={() => setSidebarOpen(true)}><Menu /></button>
+                            <h2 className="text-xl font-black uppercase tracking-tighter">{view.replace('-', ' ')}</h2>
+                            <div className="bg-gray-100 px-4 py-2 rounded-full flex items-center gap-2 text-sm font-bold text-gray-500"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Online</div>
+                        </header>
+
+                        <div className="flex-1 overflow-y-auto p-6 lg:p-10 relative">
+                            {view === 'dashboard' && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {[
+                                        { label: 'Colaboradores', val: employees.length, color: 'bg-blue-500', icon: User },
+                                        { label: 'Itens Estoque', val: inventory.length, color: 'bg-green-500', icon: Package },
+                                        { label: 'Entregas', val: deliveries.filter(d=>d.status==='signed').length, color: 'bg-purple-500', icon: CheckCircle }
+                                    ].map((s, i) => (
+                                        <div key={i} className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 flex items-center justify-between">
+                                            <div><p className="text-gray-400 font-bold uppercase text-xs">{s.label}</p><p className="text-4xl font-black mt-1">{s.val}</p></div>
+                                            <div className={`${s.color} p-5 rounded-2xl text-white shadow-lg`}><s.icon size={28} /></div>
+                                        </div>
+                                    ))}
+                                    <div className="md:col-span-3 bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm mt-4">
+                                        <h3 className="text-xl font-black mb-6 flex items-center gap-2 text-red-700 uppercase"><AlertTriangle size={24}/> Alertas de Estoque</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            {inventory.filter(i => i.quantity < 5).map(item => (
+                                                <div key={item.id} className="p-4 bg-red-50 border-2 border-red-100 rounded-2xl flex justify-between items-center">
+                                                    <div><p className="font-black text-red-800">{item.name}</p><p className="text-[10px] font-black uppercase opacity-60">CA: {item.ca}</p></div>
+                                                    <span className="text-2xl font-black text-red-600">{item.quantity}</span>
+                                                </div>
+                                            ))}
+                                            {inventory.filter(i => i.quantity < 5).length === 0 && <p className="text-gray-400 italic font-bold">Estoque saudável.</p>}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {(view === 'employees' || view === 'inventory') && (
+                                <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
+                                    <div className="p-8 border-b border-gray-100 flex justify-between items-center">
+                                        <h3 className="text-2xl font-black tracking-tighter">{view === 'employees' ? 'Colaboradores' : 'Estoque Central'}</h3>
+                                        <button onClick={() => view === 'employees' ? setShowImportEmployees(true) : setShowImportInventory(true)} className="bg-gray-100 px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-gray-200"><Upload size={18} /> Importar</button>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-gray-50 text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                                                <tr>
+                                                    <th className="px-8 py-5">{view === 'employees' ? 'Nome' : 'Equipamento'}</th>
+                                                    <th className="px-8 py-5">{view === 'employees' ? 'Função' : 'Detalhes'}</th>
+                                                    <th className="px-8 py-5 text-center">{view === 'employees' ? 'Ação' : 'Saldo'}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {(view === 'employees' ? employees : inventory).map(item => (
+                                                    <tr key={item.id} className="hover:bg-gray-50/50">
+                                                        <td className="px-8 py-5 font-black text-gray-800">{item.name}</td>
+                                                        <td className="px-8 py-5 font-bold text-gray-400 text-sm">{view === 'employees' ? `${item.role} • ${item.sector}` : `CA: ${item.ca} | ${item.complement}`}</td>
+                                                        <td className="px-8 py-5 text-center">
+                                                            {view === 'employees' ? <button onClick={() => deleteItem('employees', item.id)} className="text-red-300 hover:text-red-600"><Trash2 size={20}/></button> : <span className={`px-4 py-1.5 rounded-full font-black text-xs ${item.quantity < 5 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>{item.quantity}</span>}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {view === 'pending-signatures' && (
+                                <div className="space-y-6">
+                                    <div className="bg-blue-50 p-8 rounded-[40px] border border-blue-100">
+                                        <h3 className="text-2xl font-black text-blue-900">Assinaturas Aguardando</h3>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {deliveries.filter(d => d.status === 'pending').map(del => (
+                                            <div key={del.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex justify-between items-center">
+                                                <div><p className="font-black text-lg text-gray-800">{del.employeeName}</p><p className="text-sm font-bold text-blue-600">{del.epiName} (x{del.quantityDelivered})</p></div>
+                                                <button onClick={() => { setPendingDeliveryToSign(del); setSignatureModalOpen(true); }} className="bg-blue-600 text-white p-4 rounded-2xl shadow-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center gap-2"><PenLine size={20}/> Assinar</button>
+                                            </div>
+                                        ))}
+                                        {deliveries.filter(d => d.status === 'pending').length === 0 && <div className="md:col-span-2 text-center p-20 text-gray-300 font-black uppercase">Nenhuma pendência</div>}
+                                    </div>
+                                </div>
+                            )}
+
+                            {view === 'reports' && (
+                                <div className="space-y-6">
+                                    {!selectedEmployeeForReport ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {employees.map(emp => (
+                                                <button key={emp.id} onClick={() => setSelectedEmployeeForReport(emp)} className="p-8 bg-white rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-500 transition-all text-left flex items-center gap-6 group">
+                                                    <div className="h-16 w-16 bg-gray-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner"><User size={28}/></div>
+                                                    <div><p className="font-black text-xl">{emp.name}</p><p className="text-xs font-bold text-gray-400 uppercase">{emp.role}</p></div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="bg-white rounded-[40px] shadow-2xl border border-gray-100 overflow-hidden print-content">
+                                            <div className="p-6 bg-gray-50 border-b flex justify-between items-center no-print">
+                                                <button onClick={() => setSelectedEmployeeForReport(null)} className="flex items-center gap-2 text-blue-600 font-black text-xs uppercase"><ArrowLeft size={18}/> Voltar</button>
+                                                <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg"><Printer size={18}/> Imprimir</button>
+                                            </div>
+                                            <div className="p-12 md:p-16 space-y-8 bg-white">
+                                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-4 border-black pb-6 gap-6">
+                                                    <div><h1 className="text-4xl font-black uppercase leading-none mb-2">Ficha de EPI</h1><p className="text-gray-400 font-bold text-xl uppercase">Controle Individual</p></div>
+                                                    <div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-200 mt-4 md:mt-0 min-w-[300px]">
+                                                        <p className="font-black text-2xl uppercase mb-1">{selectedEmployeeForReport.name}</p>
+                                                        <p className="text-sm font-bold text-gray-400 uppercase">{selectedEmployeeForReport.role}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-50 border-l-4 border-blue-600 p-4 text-xs font-medium text-gray-600 mb-6 text-justify">
+                                                    <p className="font-black text-blue-900 uppercase mb-1 flex items-center gap-2"><ShieldCheck size={14}/> Termo de Responsabilidade:</p>
+                                                    <p>Declaro ter recebido os equipamentos listados abaixo em perfeito estado de conservação, assumindo o compromisso de utilizá-los obrigatoriamente durante minha jornada de trabalho e zelar pela guarda dos mesmos, ciente das normas da NR 06.</p>
+                                                </div>
+                                                <table className="w-full border-collapse">
+                                                    <thead>
+                                                        <tr className="bg-gray-100 border-b-4 border-black">
+                                                            <th className="border-4 border-black p-4 text-left font-black text-xs uppercase">Data</th>
+                                                            <th className="border-4 border-black p-4 text-left font-black text-xs uppercase">Equipamento</th>
+                                                            <th className="border-4 border-black p-4 text-center font-black text-xs uppercase">CA</th>
+                                                            <th className="border-4 border-black p-4 text-center font-black text-xs uppercase">Assinatura</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {deliveries.filter(d => d.employeeId === selectedEmployeeForReport.id && d.status === 'signed').map(del => (
+                                                            <tr key={del.id}>
+                                                                <td className="border-4 border-black p-4 font-black text-sm">{del.createdAt?.toDate().toLocaleDateString('pt-BR')}</td>
+                                                                <td className="border-4 border-black p-4 font-black text-blue-900 text-lg uppercase">{del.epiName}</td>
+                                                                <td className="border-4 border-black p-4 text-center font-mono font-black">{del.epiCA}</td>
+                                                                <td className="border-4 border-black p-4 flex justify-center bg-gray-50/50"><img src={del.signature} className="h-10 w-28 object-contain" alt="Assinatura" /></td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </main>
+
+                    {isDeliveryModalOpen && (
+                        <Modal isOpen={true} onClose={() => { setDeliveryModalOpen(false); setDeliveryCart([]); setDeliveryEmployeeId(''); }} title="Nova Entrega">
+                            <div className="space-y-8">
+                                <div>
+                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Colaborador</label>
+                                    <select disabled={deliveryCart.length > 0} className="w-full p-5 border-4 rounded-[32px] bg-gray-50 font-black text-lg outline-none focus:ring-8 focus:ring-blue-100 border-gray-100" value={deliveryEmployeeId} onChange={e => setDeliveryEmployeeId(e.target.value)}>
+                                        <option value="">Selecione...</option>
+                                        {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="bg-blue-50/50 p-8 rounded-[40px] border-4 border-dashed border-blue-100">
+                                    <h4 className="font-black text-blue-900 mb-6 uppercase text-sm tracking-widest flex items-center gap-2"><ShoppingCart size={20}/> Adicionar Item</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div className="md:col-span-3">
+                                            <select className="w-full p-5 border-2 rounded-2xl bg-white font-black border-gray-100 outline-none" value={currentEpiSelection.id} onChange={e => setCurrentEpiSelection({...currentEpiSelection, id: e.target.value})}>
+                                                <option value="">Buscar EPI...</option>
+                                                {inventory.filter(i => i.quantity > 0).map(i => <option key={i.id} value={i.id}>{i.name} [Saldo: {i.quantity}]</option>)}
+                                            </select>
+                                        </div>
+                                        <input type="number" min="1" className="w-full p-5 border-2 rounded-2xl bg-white font-black border-gray-100 outline-none" placeholder="Qtd" value={currentEpiSelection.qty} onChange={e => setCurrentEpiSelection({...currentEpiSelection, qty: e.target.value})} />
+                                    </div>
+                                    <button disabled={!currentEpiSelection.id || !deliveryEmployeeId} onClick={addToCart} className="mt-6 w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl hover:bg-blue-700 active:scale-95 disabled:opacity-30 uppercase">+ Adicionar</button>
+                                </div>
+                                {deliveryCart.length > 0 && (
+                                    <div className="space-y-6">
+                                        <div className="border-4 border-gray-50 rounded-[32px] overflow-hidden divide-y-2 divide-gray-50">
+                                            {deliveryCart.map(item => (
+                                                <div key={item.id} className="p-5 bg-white flex justify-between items-center">
+                                                    <div><p className="font-black text-lg">{item.name}</p><p className="text-[10px] font-black uppercase text-gray-400">Qtd: {item.qty}</p></div>
+                                                    <button onClick={() => setDeliveryCart(deliveryCart.filter(c=>c.id!==item.id))} className="text-red-300 hover:text-red-600 p-2"><MinusCircle size={24}/></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <button onClick={() => processDeliveryBatch(null)} className="bg-gray-100 text-gray-600 py-5 rounded-3xl font-black text-lg hover:bg-gray-200 active:scale-95 uppercase">Assinar Depois</button>
+                                            <button onClick={() => setSignatureModalOpen(true)} className="bg-green-600 text-white py-5 rounded-3xl font-black text-lg shadow-xl hover:bg-green-700 active:scale-95 uppercase">Assinar Agora</button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </Modal>
+                    )}
+
+                    <Modal isOpen={isSignatureModalOpen} onClose={() => setSignatureModalOpen(false)} title="Assinatura" maxWidth="max-w-xl">
+                        <div className="text-center space-y-8">
+                            <p className="font-black text-3xl uppercase">{pendingDeliveryToSign ? pendingDeliveryToSign.employeeName : employees.find(e=>e.id===deliveryEmployeeId)?.name}</p>
+                            <SignaturePad onSave={pendingDeliveryToSign ? signPendingDelivery : processDeliveryBatch} onCancel={() => setSignatureModalOpen(false)} />
+                        </div>
+                    </Modal>
+
+                    {(showImportEmployees || showImportInventory) && (
+                        <Modal isOpen={true} onClose={() => { setShowImportEmployees(false); setShowImportInventory(false); setImportText(''); }} title="Importar">
+                            <textarea className="w-full h-64 p-8 border-4 border-gray-100 rounded-[32px] bg-gray-50 font-mono text-sm focus:ring-8 focus:ring-blue-50 outline-none" placeholder={showImportEmployees ? "Ex: João, Soldador, Oficina" : "Ex: Luva, Punho 20, 12345, 100"} value={importText} onChange={e => setImportText(e.target.value)} />
+                            <button onClick={() => handleImport(showImportEmployees ? 'employees' : 'inventory')} className="mt-4 w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg uppercase">Processar</button>
+                        </Modal>
+                    )}
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
