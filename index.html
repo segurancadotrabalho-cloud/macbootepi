@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EPI MACBOOT - Gestão Inteligente</title>
     
-    <!-- 1. Fonte Profissional (Inter) -->
+    <!-- 1. Fonte Profissional -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -25,14 +25,10 @@
         }
     </script>
     
-    <!-- 3. React & ReactDOM (UMD - Mais estável) -->
+    <!-- 3. React & Firebase -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- 4. Babel Standalone -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <!-- 5. Firebase Compat -->
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -42,8 +38,9 @@
         @media print {
             body * { visibility: hidden; }
             .print-content, .print-content * { visibility: visible; }
-            .print-content { position: absolute; left: 0; top: 0; width: 100%; }
+            .print-content { position: absolute; left: 0; top: 0; width: 100%; height: 100%; margin: 0; padding: 0; }
             .no-print { display: none !important; }
+            @page { margin: 1cm; size: A4; }
         }
         /* Scrollbar fina */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -66,38 +63,34 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- ÍCONES (SVG Inline) ---
+        // --- ÍCONES ---
         const Icons = {
-            UserPlus: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
-            Package: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
-            ClipboardCheck: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M9 3v2a3 3 0 0 0 6 0V3"/><path d="m9 14 2 2 4-4"/></svg>,
-            FileText: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
-            Plus: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-            Download: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
-            Trash2: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
-            CheckCircle: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
-            Menu: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
-            X: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-            User: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-            ShieldCheck: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>,
-            Search: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-            Upload: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
-            ArrowLeft: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
-            Printer: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>,
-            AlertTriangle: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-            ShoppingCart: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,
-            MinusCircle: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>,
-            PenLine: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>,
-            Clock: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-            Boot: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2h0a2 2 0 0 1-2-2v-8"/></svg>
+            UserPlus: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
+            Package: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
+            ClipboardCheck: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M9 3v2a3 3 0 0 0 6 0V3"/><path d="m9 14 2 2 4-4"/></svg>,
+            FileText: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+            Plus: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+            Trash2: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
+            CheckCircle: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+            Menu: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+            X: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            User: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            ShieldCheck: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>,
+            Search: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+            Upload: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
+            ArrowLeft: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
+            Printer: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>,
+            AlertTriangle: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+            ShoppingCart: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,
+            MinusCircle: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>,
+            PenLine: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>,
+            Clock: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            PlusCircle: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>,
+            Maximize: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
         };
+        const Icon = ({ name, size = 20, className }) => { const Ico = Icons[name]; return Ico ? <Ico width={size} height={size} className={className} /> : null; };
 
-        const Icon = ({ name, size = 20, className }) => {
-            const Ico = Icons[name];
-            return Ico ? <Ico width={size} height={size} className={className} /> : null;
-        };
-
-        // --- FIREBASE CONFIG ---
+        // --- FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyDX7Tlvz3g9cbQW01IMYsEp3GQ9B825aYI",
             authDomain: "episystem-30cae.firebaseapp.com",
@@ -106,28 +99,88 @@
             messagingSenderId: "1088262046750",
             appId: "1:1088262046750:web:6d6250e1d1cd020ade5a0f"
         };
-
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
         const appId = 'episystem-macboot-v1';
+        const { useState, useEffect, useRef, useMemo } = React;
 
-        const { useState, useEffect, useRef } = React;
+        // --- COMPONENTE SELECT PESQUISÁVEL (Novo!) ---
+        const SearchableSelect = ({ options, value, onChange, placeholder }) => {
+            const [search, setSearch] = useState('');
+            const [isOpen, setIsOpen] = useState(false);
+            const wrapperRef = useRef(null);
 
-        // --- COMPONENTES UI ---
+            // Filtragem
+            const filtered = options.filter(opt => 
+                opt.label.toLowerCase().includes(search.toLowerCase())
+            );
 
-        const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-xl" }) => {
+            // Fechar ao clicar fora
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+                        setIsOpen(false);
+                    }
+                };
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => document.removeEventListener("mousedown", handleClickOutside);
+            }, [wrapperRef]);
+
+            const selectedOption = options.find(o => o.value === value);
+
+            return (
+                <div className="relative" ref={wrapperRef}>
+                    <div 
+                        className="w-full p-3 bg-white border border-slate-200 rounded-lg text-sm flex justify-between items-center cursor-pointer hover:border-brand-500"
+                        onClick={() => setIsOpen(!isOpen)}
+                    >
+                        <span className={selectedOption ? 'text-slate-800 font-medium' : 'text-slate-400'}>
+                            {selectedOption ? selectedOption.label : placeholder}
+                        </span>
+                        <Icon name="Search" size={16} className="text-slate-400"/>
+                    </div>
+                    
+                    {isOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-hidden flex flex-col">
+                            <input 
+                                type="text" 
+                                className="p-3 border-b border-slate-100 text-sm outline-none focus:bg-slate-50"
+                                placeholder="Digite para buscar..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                autoFocus
+                            />
+                            <div className="overflow-y-auto flex-1">
+                                {filtered.length > 0 ? filtered.map(opt => (
+                                    <div 
+                                        key={opt.value} 
+                                        className="p-3 hover:bg-brand-50 text-sm cursor-pointer transition-colors border-b border-slate-50 last:border-0"
+                                        onClick={() => { onChange(opt.value); setIsOpen(false); setSearch(''); }}
+                                    >
+                                        <div className="font-medium text-slate-800">{opt.main}</div>
+                                        {opt.sub && <div className="text-xs text-slate-500">{opt.sub}</div>}
+                                    </div>
+                                )) : (
+                                    <div className="p-4 text-center text-xs text-slate-400 italic">Nenhum resultado</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Modal = ({ isOpen, onClose, title, children, fullScreen = false }) => {
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className={`bg-white w-full ${maxWidth} rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}>
-                        <div className="px-6 py-4 bg-brand-700 text-white flex justify-between items-center shrink-0 border-b border-brand-900/10">
+                <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200 ${fullScreen ? 'p-0' : 'p-4'}`}>
+                    <div className={`bg-white shadow-2xl overflow-hidden flex flex-col ${fullScreen ? 'w-full h-full rounded-none' : 'w-full max-w-xl rounded-2xl max-h-[90vh]'}`}>
+                        <div className="px-6 py-4 bg-brand-700 text-white flex justify-between items-center shrink-0">
                             <h4 className="font-semibold text-lg flex items-center gap-2">{title}</h4>
-                            <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white">
-                                <Icon name="X" size={20} />
-                            </button>
+                            <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-colors"><Icon name="X" size={24} /></button>
                         </div>
-                        <div className="p-6 overflow-y-auto bg-white">
+                        <div className={`overflow-y-auto bg-white ${fullScreen ? 'flex-1 p-0 flex flex-col' : 'p-6'}`}>
                             {children}
                         </div>
                     </div>
@@ -137,21 +190,29 @@
 
         const SignaturePad = ({ onSave, onCancel }) => {
             const canvasRef = useRef(null);
+            const containerRef = useRef(null);
+
+            const resizeCanvas = () => {
+                const canvas = canvasRef.current;
+                const container = containerRef.current;
+                if (!canvas || !container) return;
+                
+                // Ajustar para o tamanho do container (Full screen ou modal normal)
+                const rect = container.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#0f172a';
+            };
 
             useEffect(() => {
-                const timer = setTimeout(() => {
-                    const canvas = canvasRef.current;
-                    if (!canvas) return;
-                    const ctx = canvas.getContext('2d');
-                    const rect = canvas.getBoundingClientRect();
-                    if (rect.width === 0) return;
-                    canvas.width = rect.width;
-                    canvas.height = rect.height;
-                    ctx.lineWidth = 2;
-                    ctx.lineCap = 'round';
-                    ctx.strokeStyle = '#0f172a';
-                }, 200);
-                return () => clearTimeout(timer);
+                // Pequeno delay para garantir renderização
+                setTimeout(resizeCanvas, 100);
+                window.addEventListener('resize', resizeCanvas);
+                return () => window.removeEventListener('resize', resizeCanvas);
             }, []);
 
             const getPos = (e) => {
@@ -186,20 +247,22 @@
             const handleSave = () => { onSave(canvasRef.current.toDataURL('image/png')); };
 
             return (
-                <div className="space-y-4">
-                    <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden relative touch-none">
-                        <canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseOut={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} className="w-full h-48 block cursor-crosshair" style={{width:'100%', height:'12rem'}} />
-                        <p className="absolute bottom-2 right-3 text-xs text-slate-400 pointer-events-none select-none">Assinar aqui</p>
+                <div className="flex flex-col h-full">
+                    <div className="flex-1 bg-slate-50 relative touch-none cursor-crosshair border-b border-slate-200" ref={containerRef}>
+                        <canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseOut={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} className="block w-full h-full" />
+                        <div className="absolute top-4 left-4 bg-white/80 px-3 py-1 rounded-full text-xs font-bold text-slate-500 border border-slate-200 pointer-events-none">Área de Assinatura</div>
                     </div>
-                    <div className="flex justify-end gap-3 pt-2">
-                        <button onClick={clear} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">Limpar</button>
-                        <button onClick={handleSave} className="px-6 py-2 bg-brand-700 text-white rounded-lg text-sm font-medium hover:bg-brand-900 transition-colors shadow-sm">Confirmar</button>
+                    <div className="p-4 flex justify-between gap-4 bg-white border-t border-slate-100 shrink-0">
+                        <button onClick={clear} className="px-6 py-4 text-red-600 font-bold bg-red-50 rounded-xl hover:bg-red-100 transition-colors">Limpar</button>
+                        <div className="flex gap-3 w-full justify-end">
+                            <button onClick={onCancel} className="px-6 py-4 text-slate-600 font-bold bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors">Cancelar</button>
+                            <button onClick={handleSave} className="px-8 py-4 bg-brand-700 text-white rounded-xl font-bold hover:bg-brand-900 transition-colors shadow-lg flex-1 md:flex-none">CONFIRMAR ASSINATURA</button>
+                        </div>
                     </div>
                 </div>
             );
         };
 
-        // --- APP PRINCIPAL ---
         function App() {
             const [user, setUser] = useState(null);
             const [view, setView] = useState('dashboard');
@@ -209,17 +272,18 @@
             const [loading, setLoading] = useState(true);
             const [isSidebarOpen, setSidebarOpen] = useState(false);
 
-            // Estados Modais
+            // Modais e Estados
             const [showImportModal, setShowImportModal] = useState(false);
-            const [importType, setImportType] = useState(null); // 'employees' or 'inventory'
+            const [importType, setImportType] = useState(null);
             const [importText, setImportText] = useState('');
-            
-            // Novos Estados para Cadastro Manual
             const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
             const [newEmployee, setNewEmployee] = useState({ name: '', role: '', sector: '' });
-            
             const [showAddInventoryModal, setShowAddInventoryModal] = useState(false);
             const [newInventory, setNewInventory] = useState({ name: '', complement: '', ca: '', quantity: 0 });
+            
+            // Adicionar Estoque
+            const [showStockAddModal, setShowStockAddModal] = useState(false);
+            const [stockToAdd, setStockToAdd] = useState({ id: '', current: 0, add: 0 });
 
             // Entrega
             const [isDeliveryModalOpen, setDeliveryModalOpen] = useState(false);
@@ -230,7 +294,6 @@
             const [pendingDeliveryToSign, setPendingDeliveryToSign] = useState(null);
             const [selectedEmployeeForReport, setSelectedEmployeeForReport] = useState(null);
 
-            // Auth e Dados
             useEffect(() => {
                 auth.signInAnonymously().catch(console.error);
                 return auth.onAuthStateChanged(setUser);
@@ -238,65 +301,97 @@
 
             useEffect(() => {
                 if (!db) return;
-                const unsubEmp = db.collection('artifacts').doc(appId).collection('employees').onSnapshot(s => setEmployees(s.docs.map(d => ({id: d.id, ...d.data()}))), () => {});
-                const unsubInv = db.collection('artifacts').doc(appId).collection('inventory').onSnapshot(s => setInventory(s.docs.map(d => ({id: d.id, ...d.data()}))), () => {});
+                const unsubEmp = db.collection('artifacts').doc(appId).collection('employees').onSnapshot(s => setEmployees(s.docs.map(d => ({id: d.id, ...d.data()}))), console.error);
+                const unsubInv = db.collection('artifacts').doc(appId).collection('inventory').onSnapshot(s => setInventory(s.docs.map(d => ({id: d.id, ...d.data()}))), console.error);
                 const unsubDel = db.collection('artifacts').doc(appId).collection('deliveries').onSnapshot(s => {
                     setDeliveries(s.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
                     setLoading(false);
                     document.getElementById('initial-loader').style.display = 'none';
-                }, () => { setLoading(false); document.getElementById('initial-loader').style.display = 'none'; });
+                }, console.error);
                 return () => { unsubEmp(); unsubInv(); unsubDel(); };
             }, [user]);
 
-            // --- AÇÕES ---
-            const deleteItem = async (col, id) => {
-                if(confirm("Deseja remover este registro permanentemente?")) 
-                    await db.collection('artifacts').doc(appId).collection(col).doc(id).delete();
+            // Validação de Duplicidade (Inventory)
+            const checkDuplicateInventory = (name, ca) => {
+                return inventory.some(i => i.name.toLowerCase() === name.toLowerCase() && i.ca === ca);
+            };
+
+            const handleManualAddInventory = async () => {
+                if(!newInventory.name || !newInventory.ca) return alert("Preencha nome e CA.");
+                if(checkDuplicateInventory(newInventory.name, newInventory.ca)) return alert("ERRO: Já existe um EPI com este Nome e CA no estoque. Use o botão '+' para adicionar quantidade.");
+                
+                try {
+                    await db.collection('artifacts').doc(appId).collection('inventory').add({
+                        ...newInventory, quantity: parseInt(newInventory.quantity) || 0, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    setNewInventory({ name: '', complement: '', ca: '', quantity: 0 });
+                    setShowAddInventoryModal(false);
+                    alert("Item cadastrado!");
+                } catch (error) { alert("Erro de permissão: " + error.message); }
+            };
+
+            const handleManualAddEmployee = async () => {
+                if(!newEmployee.name || !newEmployee.role) return alert("Preencha nome e função.");
+                try {
+                    await db.collection('artifacts').doc(appId).collection('employees').add({
+                        ...newEmployee, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    setNewEmployee({ name: '', role: '', sector: '' });
+                    setShowAddEmployeeModal(false);
+                    alert("Colaborador cadastrado!");
+                } catch (error) { alert("Erro de permissão: " + error.message); }
+            };
+
+            const handleAddStock = async () => {
+                if(stockToAdd.add <= 0) return alert("Quantidade inválida.");
+                try {
+                    const newQty = parseInt(stockToAdd.current) + parseInt(stockToAdd.add);
+                    await db.collection('artifacts').doc(appId).collection('inventory').doc(stockToAdd.id).update({
+                        quantity: newQty
+                    });
+                    setShowStockAddModal(false);
+                    setStockToAdd({ id: '', current: 0, add: 0 });
+                } catch(error) { alert("Erro ao atualizar estoque."); }
             };
 
             const handleImport = async () => {
                 const lines = importText.split('\n').filter(l => l.trim());
                 const batch = db.batch();
                 const colRef = db.collection('artifacts').doc(appId).collection(importType);
+                let errors = 0;
+
                 lines.forEach(line => {
                     const p = line.split(/[,;\t]/).map(s => s.trim());
                     const docRef = colRef.doc();
-                    if (importType === 'employees' && p.length >= 3) batch.set(docRef, { name: p[0], role: p[1], sector: p[2], createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-                    else if (importType === 'inventory' && p.length >= 4) batch.set(docRef, { name: p[0], complement: p[1], ca: p[2], quantity: parseInt(p[3]) || 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    if (importType === 'employees' && p.length >= 3) {
+                        batch.set(docRef, { name: p[0], role: p[1], sector: p[2], createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    } else if (importType === 'inventory' && p.length >= 4) {
+                        if(!checkDuplicateInventory(p[0], p[2])) {
+                            batch.set(docRef, { name: p[0], complement: p[1], ca: p[2], quantity: parseInt(p[3]) || 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                        } else { errors++; }
+                    }
                 });
                 await batch.commit();
                 setImportText(''); setShowImportModal(false);
+                if(errors > 0) alert(`${errors} itens duplicados foram ignorados.`);
             };
 
-            const handleManualAddEmployee = async () => {
-                if(!newEmployee.name || !newEmployee.role) return alert("Preencha nome e função.");
-                await db.collection('artifacts').doc(appId).collection('employees').add({
-                    ...newEmployee, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                setNewEmployee({ name: '', role: '', sector: '' });
-                setShowAddEmployeeModal(false);
-            };
-
-            const handleManualAddInventory = async () => {
-                if(!newInventory.name || !newInventory.ca) return alert("Preencha nome e CA.");
-                await db.collection('artifacts').doc(appId).collection('inventory').add({
-                    ...newInventory, quantity: parseInt(newInventory.quantity) || 0, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                setNewInventory({ name: '', complement: '', ca: '', quantity: 0 });
-                setShowAddInventoryModal(false);
-            };
-
+            // Lógica do Carrinho de Entrega
             const addToCart = () => {
+                if(!currentEpiSelection.id) return alert("Selecione um EPI.");
                 const epi = inventory.find(i => i.id === currentEpiSelection.id);
                 if (!epi || epi.quantity < currentEpiSelection.qty) return alert("Estoque insuficiente.");
+                if (deliveryCart.some(i => i.id === epi.id)) return alert("Item já está na lista.");
+                
                 setDeliveryCart([...deliveryCart, { ...epi, qty: parseInt(currentEpiSelection.qty) }]);
                 setCurrentEpiSelection({ id: '', qty: 1 });
             };
 
             const processDeliveryBatch = async (signature = null) => {
+                if (!deliveryEmployeeId || deliveryCart.length === 0) return alert("Selecione colaborador e itens.");
                 const employee = employees.find(e => e.id === deliveryEmployeeId);
-                if (!employee || deliveryCart.length === 0) return;
                 const batch = db.batch();
+                
                 deliveryCart.forEach(item => {
                     const delRef = db.collection('artifacts').doc(appId).collection('deliveries').doc();
                     batch.set(delRef, {
@@ -307,19 +402,24 @@
                     const invRef = db.collection('artifacts').doc(appId).collection('inventory').doc(item.id);
                     batch.update(invRef, { quantity: item.quantity - item.qty });
                 });
+
                 await batch.commit();
                 setDeliveryCart([]); setDeliveryEmployeeId(''); setDeliveryModalOpen(false); setSignatureModalOpen(false);
-                if (signature) { setSelectedEmployeeForReport(employee); setView('reports'); } else { setView('pending-signatures'); }
+                if (signature) { setSelectedEmployeeForReport(employee); setView('reports'); } 
+                else { setView('pending-signatures'); }
             };
 
             const signPendingDelivery = async (signature) => {
                 if (!pendingDeliveryToSign) return;
-                const delRef = db.collection('artifacts').doc(appId).collection('deliveries').doc(pendingDeliveryToSign.id);
-                await delRef.update({ signature, status: 'signed', signedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                await db.collection('artifacts').doc(appId).collection('deliveries').doc(pendingDeliveryToSign.id)
+                    .update({ signature, status: 'signed', signedAt: firebase.firestore.FieldValue.serverTimestamp() });
                 setSignatureModalOpen(false); setPendingDeliveryToSign(null);
             };
 
-            // Layout
+            // Mapeamento para o Select Pesquisável
+            const employeeOptions = employees.map(e => ({ value: e.id, label: e.name, main: e.name, sub: `${e.role} - ${e.sector}` }));
+            const epiOptions = inventory.filter(i => i.quantity > 0).map(i => ({ value: i.id, label: i.name, main: i.name, sub: `CA: ${i.ca} | Saldo: ${i.quantity}` }));
+
             const SidebarItem = ({ icon, label, id, count }) => (
                 <button onClick={() => { setView(id); setSidebarOpen(false); setSelectedEmployeeForReport(null); }} className={`flex items-center justify-between w-full px-4 py-3 text-sm font-medium rounded-lg transition-all mb-1 ${view === id ? 'bg-brand-700 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>
                     <div className="flex items-center gap-3"><Icon name={icon} size={18} /> {label}</div>
@@ -331,7 +431,6 @@
 
             return (
                 <div className="flex h-screen overflow-hidden">
-                    {/* SIDEBAR */}
                     <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-300 lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                         <div className="h-16 flex items-center px-6 border-b border-slate-100">
                             <h1 className="text-xl font-bold text-brand-900 tracking-tight flex items-center gap-2">
@@ -358,7 +457,6 @@
                         </div>
                     </aside>
 
-                    {/* MAIN CONTENT */}
                     <main className="flex-1 flex flex-col min-w-0 bg-slate-50/50">
                         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 no-print">
                             <button className="lg:hidden text-slate-500" onClick={() => setSidebarOpen(true)}><Icon name="Menu" /></button>
@@ -367,7 +465,6 @@
                         </header>
 
                         <div className="flex-1 overflow-y-auto p-4 lg:p-8">
-                            {/* DASHBOARD */}
                             {view === 'dashboard' && (
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -397,7 +494,6 @@
                                 </div>
                             )}
 
-                            {/* TABELAS (COLABORADORES / ESTOQUE) */}
                             {(view === 'employees' || view === 'inventory') && (
                                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                                     <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -426,7 +522,15 @@
                                                         <td className="px-6 py-4 font-medium text-slate-800">{item.name}</td>
                                                         <td className="px-6 py-4 text-slate-500">{view === 'employees' ? `${item.role} • ${item.sector}` : `CA: ${item.ca} ${item.complement ? `• ${item.complement}` : ''}`}</td>
                                                         <td className="px-6 py-4 text-center">
-                                                            {view === 'employees' ? <button onClick={() => deleteItem('employees', item.id)} className="text-red-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors"><Icon name="Trash2" size={18}/></button> : <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${item.quantity < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{item.quantity}</span>}
+                                                            {view === 'employees' ? (
+                                                                <button onClick={() => deleteItem('employees', item.id)} className="text-red-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors"><Icon name="Trash2" size={18}/></button>
+                                                            ) : (
+                                                                <div className="flex items-center justify-center gap-3">
+                                                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${item.quantity < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{item.quantity}</span>
+                                                                    <button onClick={() => { setStockToAdd({id: item.id, current: item.quantity, add: 0}); setShowStockAddModal(true); }} className="text-brand-600 hover:text-brand-800 p-1 bg-brand-50 rounded hover:bg-brand-100" title="Adicionar Estoque"><Icon name="Plus" size={14}/></button>
+                                                                    <button onClick={() => deleteItem('inventory', item.id)} className="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded"><Icon name="Trash2" size={16}/></button>
+                                                                </div>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -436,7 +540,6 @@
                                 </div>
                             )}
 
-                            {/* ASSINATURAS PENDENTES */}
                             {view === 'pending-signatures' && (
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -455,7 +558,6 @@
                                 </div>
                             )}
 
-                            {/* FICHAS DE EPI */}
                             {view === 'reports' && (
                                 <div className="space-y-6">
                                     {!selectedEmployeeForReport ? (
@@ -475,41 +577,40 @@
                                                 <button onClick={() => setSelectedEmployeeForReport(null)} className="flex items-center gap-2 text-slate-600 font-medium hover:text-brand-700 transition-colors text-sm"><Icon name="ArrowLeft" size={16}/> Voltar</button>
                                                 <button onClick={() => window.print()} className="px-4 py-2 bg-brand-700 text-white rounded-lg text-sm font-medium hover:bg-brand-900 transition-colors flex items-center gap-2"><Icon name="Printer" size={16}/> Imprimir Ficha</button>
                                             </div>
-                                            <div className="p-12 space-y-10">
-                                                <div className="flex justify-between items-start border-b-2 border-slate-900 pb-8">
+                                            <div className="p-12 space-y-8">
+                                                <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6">
                                                     <div>
-                                                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">FICHA DE CONTROLE DE EPI</h1>
-                                                        <p className="text-slate-500 font-medium">EPI MACBOOT - SEGURANÇA DO TRABALHO</p>
+                                                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">FICHA DE EPI</h1>
+                                                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">EPI MACBOOT - SEGURANÇA DO TRABALHO</p>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="text-xl font-bold text-slate-800">{selectedEmployeeForReport.name}</p>
-                                                        <p className="text-sm text-slate-500 font-semibold uppercase tracking-wider">{selectedEmployeeForReport.role} | {selectedEmployeeForReport.sector}</p>
+                                                        <p className="text-lg font-bold text-slate-800">{selectedEmployeeForReport.name}</p>
+                                                        <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">{selectedEmployeeForReport.role} | {selectedEmployeeForReport.sector}</p>
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-6 rounded-lg border border-slate-100 text-justify">
-                                                    <strong className="block text-slate-900 mb-2 uppercase text-xs tracking-wider">Termo de Responsabilidade</strong>
-                                                    Declaro ter recebido da empresa os Equipamentos de Proteção Individual (EPIs) constantes nesta ficha, em perfeitas condições de uso. Comprometo-me a utilizá-los apenas para as finalidades a que se destinam, a zelar pela sua guarda e conservação, e a comunicar ao empregador qualquer alteração que os torne impróprios para uso, cumprindo as disposições da NR-06.
+                                                <div className="text-[10px] text-slate-500 leading-tight text-justify">
+                                                    <strong>TERMO DE RESPONSABILIDADE:</strong> Declaro ter recebido os EPIs listados abaixo em perfeitas condições de uso. Comprometo-me a utilizá-los apenas para as finalidades a que se destinam, a zelar pela sua guarda e conservação, e a comunicar ao empregador qualquer alteração que os torne impróprios para uso, cumprindo as disposições da NR-06. A assinatura digital abaixo valida juridicamente este recebimento.
                                                 </div>
 
-                                                <table className="w-full text-sm border-collapse">
+                                                <table className="w-full text-xs border-collapse">
                                                     <thead>
-                                                        <tr className="border-b-2 border-slate-800 text-slate-800 font-bold uppercase text-xs tracking-wider text-left">
-                                                            <th className="py-3 px-2">Data</th>
-                                                            <th className="py-3 px-2">Descrição do EPI</th>
-                                                            <th className="py-3 px-2 text-center">C.A.</th>
-                                                            <th className="py-3 px-2 text-center">Qtd</th>
-                                                            <th className="py-3 px-2 text-center">Assinatura</th>
+                                                        <tr className="border-b-2 border-slate-800 text-slate-800 font-bold uppercase tracking-wider text-left">
+                                                            <th className="py-2 px-2 w-24">Data</th>
+                                                            <th className="py-2 px-2">Descrição do EPI</th>
+                                                            <th className="py-2 px-2 text-center w-20">C.A.</th>
+                                                            <th className="py-2 px-2 text-center w-12">Qtd</th>
+                                                            <th className="py-2 px-2 text-center w-48">Assinatura</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="text-slate-700 font-medium">
                                                         {deliveries.filter(d => d.employeeId === selectedEmployeeForReport.id && d.status === 'signed').map(del => (
                                                             <tr key={del.id} className="border-b border-slate-100">
-                                                                <td className="py-4 px-2">{del.createdAt?.toDate().toLocaleDateString('pt-BR')}</td>
-                                                                <td className="py-4 px-2">{del.epiName}</td>
-                                                                <td className="py-4 px-2 text-center font-mono text-xs">{del.epiCA}</td>
-                                                                <td className="py-4 px-2 text-center">{del.quantityDelivered}</td>
-                                                                <td className="py-4 px-2 flex justify-center"><img src={del.signature} className="h-8 object-contain opacity-80" alt="Assinatura" /></td>
+                                                                <td className="py-3 px-2">{del.createdAt?.toDate().toLocaleDateString('pt-BR')}</td>
+                                                                <td className="py-3 px-2">{del.epiName}</td>
+                                                                <td className="py-3 px-2 text-center font-mono">{del.epiCA}</td>
+                                                                <td className="py-3 px-2 text-center">{del.quantityDelivered}</td>
+                                                                <td className="py-1 px-2 flex justify-center"><img src={del.signature} className="h-12 object-contain mix-blend-multiply" alt="Assinatura" /></td>
                                                             </tr>
                                                         ))}
                                                     </tbody>
@@ -522,27 +623,31 @@
                         </div>
                     </main>
 
-                    {/* MODAIS */}
+                    {/* MODAIS GERAIS */}
                     
-                    {/* MODAL NOVA ENTREGA */}
                     <Modal isOpen={isDeliveryModalOpen} onClose={() => { setDeliveryModalOpen(false); setDeliveryCart([]); setDeliveryEmployeeId(''); }} title="Registrar Entrega de EPI">
                         <div className="space-y-6">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">1. Selecione o Colaborador</label>
-                                <select disabled={deliveryCart.length > 0} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-brand-500 outline-none transition-all disabled:opacity-50" value={deliveryEmployeeId} onChange={e => setDeliveryEmployeeId(e.target.value)}>
-                                    <option value="">Buscar colaborador...</option>
-                                    {employees.map(e => <option key={e.id} value={e.id}>{e.name} - {e.role}</option>)}
-                                </select>
+                                <SearchableSelect 
+                                    options={employeeOptions} 
+                                    value={deliveryEmployeeId} 
+                                    onChange={setDeliveryEmployeeId} 
+                                    placeholder="Buscar por nome..."
+                                    disabled={deliveryCart.length > 0}
+                                />
                             </div>
                             
                             <div className="p-5 bg-slate-50 rounded-xl border border-slate-200">
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">2. Adicionar Itens</label>
                                 <div className="flex gap-3 mb-3">
                                     <div className="flex-1">
-                                        <select className="w-full p-3 bg-white border border-slate-200 rounded-lg text-sm outline-none" value={currentEpiSelection.id} onChange={e => setCurrentEpiSelection({...currentEpiSelection, id: e.target.value})}>
-                                            <option value="">Selecionar EPI...</option>
-                                            {inventory.filter(i => i.quantity > 0).map(i => <option key={i.id} value={i.id}>{i.name} (Saldo: {i.quantity})</option>)}
-                                        </select>
+                                        <SearchableSelect 
+                                            options={epiOptions} 
+                                            value={currentEpiSelection.id} 
+                                            onChange={(val) => setCurrentEpiSelection({...currentEpiSelection, id: val})} 
+                                            placeholder="Buscar EPI..."
+                                        />
                                     </div>
                                     <input type="number" min="1" className="w-20 p-3 bg-white border border-slate-200 rounded-lg text-sm text-center outline-none" placeholder="Qtd" value={currentEpiSelection.qty} onChange={e => setCurrentEpiSelection({...currentEpiSelection, qty: e.target.value})} />
                                 </div>
@@ -568,54 +673,51 @@
                         </div>
                     </Modal>
 
-                    {/* MODAL ASSINATURA */}
-                    <Modal isOpen={isSignatureModalOpen} onClose={() => setSignatureModalOpen(false)} title="Coletar Assinatura">
-                        <div className="text-center space-y-6">
-                            <div>
-                                <p className="text-xl font-bold text-slate-800">{pendingDeliveryToSign ? pendingDeliveryToSign.employeeName : employees.find(e=>e.id===deliveryEmployeeId)?.name}</p>
-                                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">Confirmação de Recebimento</p>
-                            </div>
-                            <SignaturePad onSave={pendingDeliveryToSign ? signPendingDelivery : processDeliveryBatch} onCancel={() => setSignatureModalOpen(false)} />
-                        </div>
+                    <Modal isOpen={isSignatureModalOpen} onClose={() => setSignatureModalOpen(false)} title="Coletar Assinatura" fullScreen={true}>
+                        <SignaturePad onSave={pendingDeliveryToSign ? signPendingDelivery : processDeliveryBatch} onCancel={() => setSignatureModalOpen(false)} />
                     </Modal>
 
-                    {/* MODAL IMPORTAR */}
                     {showImportModal && (
                         <Modal isOpen={true} onClose={() => { setShowImportModal(false); setImportText(''); }} title={`Importar ${importType === 'employees' ? 'Colaboradores' : 'Estoque'}`}>
                             <div className="space-y-4">
-                                <p className="text-sm text-slate-500 bg-slate-50 p-3 rounded border border-slate-100">
-                                    Cole os dados abaixo (separados por vírgula ou tab).<br/>
-                                    Formato: {importType === 'employees' ? <b>Nome, Função, Setor</b> : <b>Nome, Complemento, CA, Quantidade</b>}
-                                </p>
-                                <textarea className="w-full h-48 p-4 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Ex: Bota de Segurança, Bico PVC, 12345, 50" value={importText} onChange={e => setImportText(e.target.value)} />
-                                <button onClick={handleImport} className="w-full py-3 bg-brand-700 text-white rounded-lg font-bold text-sm hover:bg-brand-900 transition-colors">Processar Importação</button>
+                                <p className="text-sm text-slate-500 bg-slate-50 p-3 rounded border border-slate-100">Cole os dados (CSV/Excel).<br/>Formato: {importType === 'employees' ? <b>Nome, Função, Setor</b> : <b>Nome, Complemento, CA, Quantidade</b>}</p>
+                                <textarea className="w-full h-48 p-4 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-brand-500 outline-none" value={importText} onChange={e => setImportText(e.target.value)} />
+                                <button onClick={handleImport} className="w-full py-3 bg-brand-700 text-white rounded-lg font-bold text-sm hover:bg-brand-900 transition-colors">Importar</button>
                             </div>
                         </Modal>
                     )}
 
-                    {/* MODAL NOVO COLABORADOR */}
                     {showAddEmployeeModal && (
-                        <Modal isOpen={true} onClose={() => setShowAddEmployeeModal(false)} title="Cadastrar Colaborador">
+                        <Modal isOpen={true} onClose={() => setShowAddEmployeeModal(false)} title="Novo Colaborador">
                             <div className="space-y-4">
                                 <input className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-500" placeholder="Nome Completo" value={newEmployee.name} onChange={e => setNewEmployee({...newEmployee, name: e.target.value})} />
                                 <input className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-500" placeholder="Função / Cargo" value={newEmployee.role} onChange={e => setNewEmployee({...newEmployee, role: e.target.value})} />
                                 <input className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-500" placeholder="Setor / Departamento" value={newEmployee.sector} onChange={e => setNewEmployee({...newEmployee, sector: e.target.value})} />
-                                <button onClick={handleManualAddEmployee} className="w-full py-3 bg-brand-700 text-white rounded-lg font-bold text-sm hover:bg-brand-900 transition-colors">Salvar Registro</button>
+                                <button onClick={handleManualAddEmployee} className="w-full py-3 bg-brand-700 text-white rounded-lg font-bold text-sm hover:bg-brand-900 transition-colors">Salvar</button>
                             </div>
                         </Modal>
                     )}
 
-                    {/* MODAL NOVO ITEM ESTOQUE */}
                     {showAddInventoryModal && (
-                        <Modal isOpen={true} onClose={() => setShowAddInventoryModal(false)} title="Cadastrar EPI no Estoque">
+                        <Modal isOpen={true} onClose={() => setShowAddInventoryModal(false)} title="Novo EPI">
                             <div className="space-y-4">
                                 <input className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-500" placeholder="Nome do Equipamento" value={newInventory.name} onChange={e => setNewInventory({...newInventory, name: e.target.value})} />
                                 <div className="grid grid-cols-2 gap-4">
-                                    <input className="p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-500" placeholder="Número do C.A." value={newInventory.ca} onChange={e => setNewInventory({...newInventory, ca: e.target.value})} />
-                                    <input type="number" className="p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-500" placeholder="Quantidade Inicial" value={newInventory.quantity} onChange={e => setNewInventory({...newInventory, quantity: e.target.value})} />
+                                    <input className="p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-500" placeholder="CA" value={newInventory.ca} onChange={e => setNewInventory({...newInventory, ca: e.target.value})} />
+                                    <input type="number" className="p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-500" placeholder="Qtd Inicial" value={newInventory.quantity} onChange={e => setNewInventory({...newInventory, quantity: e.target.value})} />
                                 </div>
-                                <input className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-500" placeholder="Complemento / Descrição (Opcional)" value={newInventory.complement} onChange={e => setNewInventory({...newInventory, complement: e.target.value})} />
-                                <button onClick={handleManualAddInventory} className="w-full py-3 bg-brand-700 text-white rounded-lg font-bold text-sm hover:bg-brand-900 transition-colors">Adicionar ao Estoque</button>
+                                <input className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-500" placeholder="Complemento (Opcional)" value={newInventory.complement} onChange={e => setNewInventory({...newInventory, complement: e.target.value})} />
+                                <button onClick={handleManualAddInventory} className="w-full py-3 bg-brand-700 text-white rounded-lg font-bold text-sm hover:bg-brand-900 transition-colors">Cadastrar</button>
+                            </div>
+                        </Modal>
+                    )}
+
+                    {showStockAddModal && (
+                        <Modal isOpen={true} onClose={() => setShowStockAddModal(false)} title="Adicionar Estoque">
+                            <div className="space-y-4">
+                                <p className="text-sm text-slate-600">Adicionando ao item existente. Saldo atual: <b>{stockToAdd.current}</b></p>
+                                <input type="number" className="w-full p-3 border border-slate-200 rounded-lg text-lg text-center outline-none focus:border-brand-500 font-bold" placeholder="Quantidade a adicionar" value={stockToAdd.add} onChange={e => setStockToAdd({...stockToAdd, add: e.target.value})} autoFocus />
+                                <button onClick={handleAddStock} className="w-full py-3 bg-emerald-600 text-white rounded-lg font-bold text-sm hover:bg-emerald-700 transition-colors">Confirmar Entrada</button>
                             </div>
                         </Modal>
                     )}
