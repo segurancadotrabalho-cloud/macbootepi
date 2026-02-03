@@ -625,16 +625,35 @@
                                         </div>
                                     ) : (
                                         <div className="bg-white rounded-xl shadow-lg print-content p-10">
-                                            <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-6">
-                                                <div><h1 className="text-2xl font-bold text-slate-900">FICHA DE EPI</h1><p className="text-xs font-bold text-slate-500 tracking-widest uppercase">EPI MACBOOT - SEGURANÇA</p></div>
-                                                <div className="text-right"><p className="font-bold text-lg">{selectedEmployeeForReport.name}</p><p className="text-xs text-slate-500 uppercase">{selectedEmployeeForReport.role} | {selectedEmployeeForReport.sector}</p></div>
+                                            <div className="border-b-2 border-slate-900 pb-6 mb-6">
+                                                <div className="flex justify-between items-start mb-6">
+                                                    <div>
+                                                        <h1 className="text-2xl font-black text-slate-900 mb-1">FICHA DE EPI</h1>
+                                                        <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">EPI MACBOOT - SEGURANÇA</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                         <p className="text-xs font-bold text-slate-900 uppercase">MACBOOT INDUSTRIA E COMERCIO DE CALÇADOS LTDA</p>
+                                                         <p className="text-xs text-slate-500 font-mono">CNPJ: 68.403.583/0001-35</p>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex justify-between items-center">
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">COLABORADOR</p>
+                                                        <p className="font-bold text-lg text-slate-800">{selectedEmployeeForReport.name}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">FUNÇÃO / SETOR</p>
+                                                        <p className="text-sm font-bold text-slate-700 uppercase">{selectedEmployeeForReport.role} | {selectedEmployeeForReport.sector}</p>
+                                                    </div>
+                                                </div>
                                             </div>
+                                            
                                             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-[10px] text-justify text-slate-600 mb-8"><strong>TERMO:</strong> Declaro ter recebido os EPIs abaixo em perfeitas condições, comprometendo-me a usá-los para os fins a que se destinam e zelar pela sua guarda.</div>
                                             <table className="w-full text-xs text-left">
-                                                <thead className="border-b-2 border-slate-800 font-bold uppercase"><tr><th className="py-2">Data</th><th>EPI</th><th>CA</th><th className="text-center">Qtd</th><th className="text-center">Assinatura</th></tr></thead>
+                                                <thead className="border-b-2 border-slate-800 font-bold uppercase"><tr><th className="py-2 w-20">Data</th><th>EPI</th><th className="w-20">CA</th><th className="text-center w-12">Qtd</th><th className="text-center w-48">Assinatura</th></tr></thead>
                                                 <tbody>
                                                     {deliveries.filter(d=>d.employeeId===selectedEmployeeForReport.id && d.status==='signed').map(d=>(
-                                                        <tr key={d.id} className="border-b border-slate-100"><td className="py-3">{d.createdAt?.toDate().toLocaleDateString('pt-PT')}</td><td>{d.epiName}</td><td>{d.epiCA}</td><td className="text-center">{d.quantityDelivered}</td><td className="text-center"><img src={d.signature} className="h-8 mx-auto" /></td></tr>
+                                                        <tr key={d.id} className="border-b border-slate-100"><td className="py-3">{d.createdAt?.toDate().toLocaleDateString('pt-PT')}</td><td>{d.epiName}</td><td>{d.epiCA}</td><td className="text-center">{d.quantityDelivered}</td><td className="text-center py-2"><img src={d.signature} className="h-16 w-32 object-contain mx-auto" /></td></tr>
                                                     ))}
                                                 </tbody>
                                             </table>
