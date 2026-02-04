@@ -29,17 +29,10 @@
     </script>
     
     <!-- 2. Bibliotecas Essenciais -->
-    <!-- SheetJS para ler Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-
-    <!-- React (UMD) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
-    
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -368,7 +361,6 @@
                 
                 const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-                let stats = { today: 0, week: 0, month: 0, top: [], fullReport: [] };
                 let epiMap = {}; 
 
                 deliveries.forEach(d => {
@@ -378,25 +370,30 @@
                     const qty = parseInt(d.quantityDelivered) || 1;
                     const id = d.epiId || d.epiName; // Usar ID ou nome como chave
 
-                    // Totais Gerais
-                    if (dDate >= startOfDay) stats.today += qty;
-                    if (dDate >= startOfWeek) stats.week += qty;
-                    if (dDate >= startOfMonth) stats.month += qty;
-
                     // Estatísticas por EPI
                     if (!epiMap[id]) {
-                        epiMap[id] = { name: d.epiName, ca: d.epiCA, today: 0, week: 0, month: 0, total: 0 };
+                        epiMap[id] = { name: d.epiName, ca: d.epiCA, today: 0, week: 0, month: 0 };
                     }
                     
                     if (dDate >= startOfDay) epiMap[id].today += qty;
                     if (dDate >= startOfWeek) epiMap[id].week += qty;
                     if (dDate >= startOfMonth) epiMap[id].month += qty;
-                    epiMap[id].total += qty; // Total geral
                 });
 
                 // Converter mapa para array e ordenar (pelos que mais saíram no mês)
-                stats.fullReport = Object.values(epiMap).sort((a, b) => b.month - a.month);
+                // Filtrar apenas itens que tiveram alguma saída no mês, semana ou dia
+                const fullReport = Object.values(epiMap)
+                    .filter(i => i.month > 0 || i.week > 0 || i.today > 0)
+                    .sort((a, b) => b.month - a.month);
                 
+                // Totais
+                const stats = { 
+                    today: fullReport.reduce((acc, i) => acc + i.today, 0),
+                    week: fullReport.reduce((acc, i) => acc + i.week, 0),
+                    month: fullReport.reduce((acc, i) => acc + i.month, 0),
+                    fullReport 
+                };
+
                 return stats;
             }, [deliveries]);
 
@@ -488,8 +485,14 @@
             };
 
             const handleAddStock = async () => {
+                // Auto-correção de NaN: se o atual for inválido, assume 0
+                const currentQty = isNaN(parseInt(stockToAdd.current)) ? 0 : parseInt(stockToAdd.current);
+                const addQty = parseInt(stockToAdd.add);
+
+                if(isNaN(addQty) || addQty <= 0) return alert("Quantidade inválida.");
+                
                 try {
-                    await db.collection('artifacts').doc(appId).collection('inventory').doc(stockToAdd.id).update({ quantity: stockToAdd.current + +stockToAdd.add });
+                    await db.collection('artifacts').doc(appId).collection('inventory').doc(stockToAdd.id).update({ quantity: currentQty + addQty });
                     toggleModal('addStock', false);
                 } catch(e) { if(e.code==='permission-denied') setPermissionError(true); }
             };
@@ -516,7 +519,9 @@
                             signature, status: signature ? 'signed' : 'pending', createdAt: new Date()
                         });
                         const invRef = db.collection('artifacts').doc(appId).collection('inventory').doc(item.id);
-                        batch.update(invRef, { quantity: item.quantity - item.qty });
+                        // Proteção contra NaN na entrega também
+                        const safeCurrentQty = isNaN(item.quantity) ? 0 : item.quantity;
+                        batch.update(invRef, { quantity: safeCurrentQty - item.qty });
                     });
                     await batch.commit();
                     toggleModal('delivery', false); toggleModal('sign', false); setDeliveryCart([]); setDeliveryEmployeeId('');
@@ -662,7 +667,7 @@
                                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Icon name="AlertTriangle" className="text-amber-500"/> Níveis de Estoque Crítico</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {inventory.filter(i => i.quantity < 5).map(item => (
-                                                <div key={item.id} className="p-4 bg-amber-50 border border-amber-100 rounded-lg flex justify-between items-center"><div><p className="font-bold text-slate-800">{item.name}</p><p className="text-xs text-amber-700 font-medium">CA: {item.ca}</p></div><span className="text-xl font-bold text-amber-600">{item.quantity} un</span></div>
+                                                <div key={item.id} className="p-4 bg-amber-50 border border-amber-100 rounded-lg flex justify-between items-center"><div><p className="font-bold text-slate-800">{item.name}</p><p className="text-xs text-amber-700 font-medium">CA: {item.ca}</p></div><span className="text-xl font-bold text-amber-600">{isNaN(item.quantity) ? 'Erro' : item.quantity} un</span></div>
                                             ))}
                                             {inventory.filter(i => i.quantity < 5).length === 0 && <p className="text-sm text-slate-400 italic">Todos os itens com estoque adequado.</p>}
                                         </div>
@@ -685,7 +690,7 @@
                                     <div className="p-6 border-b border-slate-100 flex justify-between"><h3 className="font-bold text-slate-800">Controle de Estoque</h3><div className="flex gap-2"><button onClick={()=>toggleModal('addInv', true)} className="bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-brand-800"><Icon name="Plus"/> Novo Item</button><button onClick={()=>{setImportType('inventory'); toggleModal('import', true)}} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-50"><Icon name="Upload"/> Importar</button></div></div>
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-slate-50 text-slate-500 font-medium"><tr><th className="px-6 py-4">Item</th><th className="px-6 py-4">CA</th><th className="px-6 py-4 text-center">Qtd</th><th className="px-6 py-4 text-right">Ações</th></tr></thead>
-                                        <tbody className="divide-y divide-slate-100">{inventory.map(i=><tr key={i.id} className="hover:bg-slate-50"><td className="px-6 py-4 font-medium">{i.name}</td><td className="px-6 py-4 text-slate-500">{i.ca}</td><td className="px-6 py-4 text-center"><span className={`px-2 py-1 rounded-full text-xs font-bold ${i.quantity<5?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'}`}>{i.quantity}</span></td><td className="px-6 py-4 text-right flex justify-end gap-2"><button onClick={()=>{setStockToAdd({id:i.id, curr:i.quantity, add:''}); toggleModal('addStock', true)}} className="text-brand-600 hover:bg-brand-50 p-1 rounded"><Icon name="Plus"/></button><button onClick={()=>handleDelete('inventory', i.id)} className="text-red-400 hover:bg-red-50 p-1 rounded"><Icon name="Trash2"/></button></td></tr>)}</tbody>
+                                        <tbody className="divide-y divide-slate-100">{inventory.map(i=><tr key={i.id} className="hover:bg-slate-50"><td className="px-6 py-4 font-medium">{i.name}</td><td className="px-6 py-4 text-slate-500">{i.ca}</td><td className="px-6 py-4 text-center"><span className={`px-2 py-1 rounded-full text-xs font-bold ${i.quantity<5?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'}`}>{isNaN(i.quantity) ? 0 : i.quantity}</span></td><td className="px-6 py-4 text-right flex justify-end gap-2"><button onClick={()=>{setStockToAdd({id:i.id, curr:isNaN(i.quantity)?0:i.quantity, add:''}); toggleModal('addStock', true)}} className="text-brand-600 hover:bg-brand-50 p-1 rounded"><Icon name="Plus"/></button><button onClick={()=>handleDelete('inventory', i.id)} className="text-red-400 hover:bg-red-50 p-1 rounded"><Icon name="Trash2"/></button></td></tr>)}</tbody>
                                     </table>
                                 </div>
                             )}
@@ -798,7 +803,7 @@
 
                     <Modal isOpen={modals.addStock} onClose={()=>toggleModal('addStock', false)} title="Adicionar Estoque">
                         <div className="space-y-4">
-                            <p>Atual: <b>{stockToAdd.current}</b></p>
+                            <p>Atual: <b>{isNaN(stockToAdd.current) ? 0 : stockToAdd.current}</b></p>
                             <input type="number" autoFocus className="w-full p-3 border rounded-lg outline-none focus:border-brand-500 text-center text-xl font-bold" placeholder="+0" value={stockToAdd.add} onChange={e=>setStockToAdd({...stockToAdd, add:e.target.value})} />
                             <button onClick={handleAddStock} className="w-full py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700">Confirmar</button>
                         </div>
