@@ -59,6 +59,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         #global-error { display: none; position: fixed; inset: 0; background: #fef2f2; z-index: 10000; padding: 2rem; color: #991b1b; font-family: monospace; overflow: auto; }
         
+        /* Renderizador invisível para os utilizadores, mas visível para o gerador de PDF */
         .pdf-render-container {
             position: absolute;
             top: 0;
@@ -66,7 +67,7 @@
             width: 210mm;
             min-height: 297mm;
             background-color: white;
-            z-index: 9998; 
+            z-index: 9998; /* Imediatamente abaixo do overlay de loading que é 9999 */
             pointer-events: none;
         }
     </style>
@@ -514,6 +515,10 @@
             const [isSaving, setIsSaving] = useState(false);
 
             useEffect(() => {
+                // Remove o Loader infinito assim que o componente de Link Mágico montar
+                const loader = document.getElementById('initial-loader');
+                if (loader) loader.style.display = 'none';
+
                 const sigRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('signatures').doc(token);
                 sigRef.get().then(doc => {
                     if (!doc.exists) {
@@ -628,6 +633,10 @@
 
             const [modals, setModals] = useState({ import: false, addCompany: false, addEmp: false, editEmp: false, bulkEdit: false, addInv: false, addStock: false, delivery: false, selectEpi: false, sign: false, backup: false });
             
+            // --- ESTADOS PARA O LINK MÁGICO (ADMIN) ---
+            const [magicLinkModal, setMagicLinkModal] = useState({ isOpen: false, link: '' });
+            const [linkCopied, setLinkCopied] = useState(false);
+
             const [importType, setImportType] = useState(null);
             const [importText, setImportText] = useState('');
             const [newCompany, setNewCompany] = useState({ alias: '', razao: '', cnpj: '' });
@@ -783,7 +792,7 @@
                                                 <td class="border-b border-slate-200 p-4 text-center font-mono font-bold text-slate-500">${del.epiCA}</td>
                                                 <td class="border-b border-slate-200 p-4 text-center font-black text-lg">${del.quantityDelivered}</td>
                                                 <td class="border-b border-slate-200 p-4 text-center align-middle">
-                                                    <img src="${del.signature}" style="max-height: 40px; max-width: 100px; display: block; margin: 0 auto;" alt="Assinatura" />
+                                                    <img src="${del.signature}" style="max-height: 40px; max-width: 100px; display: block; margin: 0 auto; filter: contrast(1.2) grayscale(1);" alt="Assinatura" />
                                                 </td>
                                                 ${hasAnySelfie ? `
                                                     <td class="border-b border-slate-200 p-4 text-center align-middle">
@@ -920,7 +929,8 @@
                 const unsub = auth.onAuthStateChanged(u => {
                     setUser(u);
                     setAuthLoading(false);
-                    document.getElementById('initial-loader').style.display = 'none';
+                    const loader = document.getElementById('initial-loader');
+                    if (loader) loader.style.display = 'none';
                 });
                 return unsub;
             }, []);
@@ -1013,7 +1023,6 @@
                 }
             }, [employees.length, myPermId, isSuperAdmin, user]);
 
-            // --- NOVO: SINCRONIZADOR DE ASSINATURAS REMOTAS (HARVEST) ---
             useEffect(() => {
                 if (!user || !db || isSuperAdmin) return;
 
@@ -1025,7 +1034,6 @@
                         const data = docSnap.data();
                         const batch = db.batch();
                         
-                        // Atualiza as entregas privadas
                         if (data.deliveryIds && Array.isArray(data.deliveryIds)) {
                             data.deliveryIds.forEach(id => {
                                 const delRef = db.collection('artifacts').doc(appId).collection('deliveries').doc(id);
@@ -1039,14 +1047,12 @@
                             });
                         }
                         
-                        // Limpa a "Caixa de correio" pública
                         batch.delete(docSnap.ref); 
                         
                         try {
                             await batch.commit();
                             console.log("Assinatura externa sincronizada com sucesso!");
                             
-                            // Adicionar Log separadamente
                             await getRef('logs').add({
                                 action: 'Assinatura Remota Sincronizada',
                                 details: `Colaborador ${data.employeeName} assinou via Link Mágico.`,
@@ -1155,10 +1161,9 @@
                 }
             };
 
-            // --- NOVA FUNÇÃO: GERAR LINK MÁGICO ---
             const handleGenerateMagicLink = async (delGroup) => {
                 try {
-                    const token = Math.random().toString(36).substring(2, 10); // ID curto seguro
+                    const token = Math.random().toString(36).substring(2, 10);
                     
                     let itemsToSign = delGroup.batchId ? deliveries.filter(d => d.batchId === delGroup.batchId && d.status === 'pending') : [delGroup];
                     
@@ -1168,7 +1173,7 @@
                     const sigRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('signatures').doc(token);
                     
                     await sigRef.set({
-                        adminUid: user.uid, // O UID de quem enviou, para depois fazer o Harvest correto
+                        adminUid: user.uid,
                         employeeName: delGroup.employeeName,
                         deliveryIds: deliveryIds,
                         items: itemsList,
@@ -1179,12 +1184,9 @@
 
                     const link = `${window.location.origin}${window.location.pathname}?sign=${token}`;
                     
-                    try {
-                        await navigator.clipboard.writeText(link);
-                        alert("Link copiado para a área de transferência!\n\nEnvie este link para o WhatsApp do colaborador.");
-                    } catch(err) {
-                        prompt("Copie este link para enviar ao colaborador:", link);
-                    }
+                    // Mostra o novo Modal Bonito em vez do prompt feio do navegador
+                    setMagicLinkModal({ isOpen: true, link: link });
+
                 } catch(e) {
                     console.error(e);
                     alert("Erro ao gerar link mágico.");
@@ -1520,6 +1522,39 @@
                         </div>
                     )}
 
+                    {/* NOVO MODAL: Link Mágico Gerado */}
+                    <Modal isOpen={magicLinkModal.isOpen} onClose={() => setMagicLinkModal({ isOpen: false, link: '' })} title="Link Gerado com Sucesso" maxWidth="max-w-md">
+                        <div className="space-y-6 text-center">
+                            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                                <Icon name="LinkIcon" size={36} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-slate-800 tracking-tight">Link Pronto a Enviar!</h3>
+                                <p className="text-sm font-medium text-slate-500 mt-2">Copie o link abaixo e envie para o WhatsApp do colaborador. Ele não precisará de palavra-passe para assinar.</p>
+                            </div>
+                            <div className="p-3 bg-slate-50 rounded-2xl border-2 border-slate-100 flex items-center justify-between gap-3 relative">
+                                <input type="text" readOnly value={magicLinkModal.link} className="bg-transparent w-full outline-none text-slate-600 font-mono text-xs truncate" />
+                                <button onClick={() => {
+                                    try {
+                                        navigator.clipboard.writeText(magicLinkModal.link);
+                                    } catch(e) {
+                                        const el = document.createElement('textarea');
+                                        el.value = magicLinkModal.link;
+                                        document.body.appendChild(el);
+                                        el.select();
+                                        document.execCommand('copy');
+                                        document.body.removeChild(el);
+                                    }
+                                    setLinkCopied(true);
+                                    setTimeout(() => setLinkCopied(false), 2000);
+                                }} className={`px-4 py-3 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-sm shrink-0 ${linkCopied ? 'bg-emerald-500' : 'bg-brand-600 hover:bg-brand-700'}`}>
+                                    {linkCopied ? 'Copiado!' : 'Copiar'}
+                                </button>
+                            </div>
+                            <button onClick={() => setMagicLinkModal({ isOpen: false, link: '' })} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-colors uppercase tracking-widest text-sm">Fechar Janela</button>
+                        </div>
+                    </Modal>
+
                     {/* SIDEBAR */}
                     <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transition-transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col`}>
                         <div className="h-16 flex items-center px-6 border-b border-slate-100 font-bold text-brand-900 gap-2 shrink-0"><Icon name="ShieldCheck" size={24}/> EPI SYSTEM</div>
@@ -1820,6 +1855,7 @@
                                 </div>
                             )}
 
+                            {/* COLABORADORES */}
                             {view === 'employees' && !isSuperAdmin && (
                                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full animate-in fade-in">
                                     <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
@@ -1923,6 +1959,7 @@
                                 </div>
                             )}
 
+                            {/* INVENTORY */}
                             {view === 'inventory' && !isSuperAdmin && (
                                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                                     <div className="p-6 border-b border-slate-100 flex justify-between"><h3 className="font-bold text-slate-800">Controle de Estoque</h3><div className="flex gap-2"><button onClick={()=>handleToggleModal('addInv', true)} className="bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-brand-800"><Icon name="Plus"/> Novo Item</button><button onClick={()=>{setImportType('inventory'); handleToggleModal('import', true)}} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-50"><Icon name="Upload"/> Importar</button></div></div>
@@ -1930,6 +1967,7 @@
                                 </div>
                             )}
                             
+                            {/* PENDING SIGNATURES */}
                             {view === 'pending-signatures' && !isSuperAdmin && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {groupedPendingDeliveries.map(del=>(
@@ -1944,7 +1982,7 @@
                                             <div className="mt-auto flex flex-col gap-2">
                                                 <div className="flex gap-2 w-full">
                                                     <button onClick={()=>{setPendingDeliveryToSign(del); handleToggleModal('sign', true)}} className="flex-1 py-3 bg-brand-600 text-white rounded-xl text-xs font-black shadow-sm hover:bg-brand-700 transition-colors flex justify-center items-center gap-2 uppercase tracking-widest"><Icon name="PenLine" size={16}/> Assinar no PC</button>
-                                                    <button onClick={() => handleGenerateMagicLink(del)} className="px-4 py-3 bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition-colors flex justify-center items-center" title="Enviar Link para o Colaborador via WhatsApp"><Icon name="LinkIcon" size={18}/></button>
+                                                    <button onClick={() => handleGenerateMagicLink(del)} className="px-4 py-3 bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition-colors flex justify-center items-center" title="Enviar Link Mágico ao Colaborador"><Icon name="LinkIcon" size={18}/></button>
                                                     <button onClick={() => handleDeleteDeliveryBatch(del.batchId, del.id)} className="px-4 py-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 transition-colors flex justify-center items-center" title="Excluir"><Icon name="Trash2" size={18}/></button>
                                                 </div>
                                             </div>
@@ -1954,6 +1992,7 @@
                                 </div>
                             )}
 
+                            {/* REPORTS */}
                             {view === 'reports' && !isSuperAdmin && (
                                 <div>
                                     {!selectedEmployeeForReport ? (
@@ -2020,8 +2059,8 @@
                                                                     <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">SEGURANÇA DO TRABALHO</p>
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <p className="text-xs font-bold text-slate-900 uppercase">{empComp.razao}</p>
-                                                                    <p className="text-xs text-slate-500 font-mono">CNPJ: {empComp.cnpj}</p>
+                                                                    <p className="text-xs font-bold text-slate-900 uppercase">${empComp.razao}</p>
+                                                                    <p className="text-xs text-slate-500 font-mono">CNPJ: ${empComp.cnpj}</p>
                                                                 </div>
                                                             </div>
 
@@ -2113,7 +2152,7 @@
                         </div>
                     </main>
 
-                    {/* MODAIS */}
+                    {/* MODAIS GERAIS */}
                     <Modal isOpen={modals.addCompany} onClose={() => handleToggleModal('addCompany', false)} title="Registar Nova Empresa">
                         <div className="space-y-5">
                             <div><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Nome Curto (Apelido)</label><input className="w-full p-4 mt-1 border-2 border-slate-100 rounded-2xl outline-none focus:border-brand-500 font-bold" placeholder="Ex: Filial Norte" value={newCompany.alias} onChange={e=>setNewCompany({...newCompany, alias:e.target.value})} /></div>
