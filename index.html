@@ -59,17 +59,15 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         #global-error { display: none; position: fixed; inset: 0; background: #fef2f2; z-index: 10000; padding: 2rem; color: #991b1b; font-family: monospace; overflow: auto; }
         
-        /* Nova classe para o contentor do PDF invisível mas renderizável */
+        /* Nova classe para o contentor do PDF invisível mas renderizável perfeitamente */
         .pdf-render-container {
             position: fixed;
             top: 0;
-            left: 0;
-            width: 210mm; /* Largura A4 padrão */
+            left: 200vw; /* Coloca a ficha fora do ecrã (à direita), mas o navegador ainda a desenha! */
+            width: 210mm;
             background-color: white;
-            z-index: 9998; /* Imediatamente atrás do overlay de loading */
-            pointer-events: none; /* Não interativo */
-            /* opacity: 0.01; Essencial: quase invisível, mas o browser é obrigado a pintá-lo */
-            visibility: hidden; /* Vamos tentar visibility e z-index primeiro */
+            z-index: 9999;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -101,11 +99,6 @@
         // ==========================================
         // CONFIGURAÇÃO FIREBASE E CONSTANTES
         // ==========================================
-        const CONSTANTES_EMPRESAS = {
-            'MACBOOT': { razao: 'MACBOOT INDUSTRIA E COMERCIO DE CALÇADOS LTDA', cnpj: '68.403.583/0001-35', cor: 'bg-slate-800', texto: 'text-white' },
-            'PESPONTO': { razao: 'MACBOOT INDUSTRIA E COMERCIO DE CALÇADOS LTDA', cnpj: '68.403.583/0002-16', cor: 'bg-blue-600', texto: 'text-white' }
-        };
-
         const firebaseConfig = {
             apiKey: "AIzaSyAAV6tC_dn8CBrw6g74gzAtYweiwq_9hPw",
             authDomain: "epimac.firebaseapp.com",
@@ -159,11 +152,12 @@
             DownloadCloud: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>,
             Filter: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
             Building: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg>,
-            Settings: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
+            Settings: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0 2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
             Image: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
             Camera: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
             RefreshCw: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
-            Activity: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            Activity: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>,
+            Briefcase: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
         };
         const Icon = ({ name, size = 20, className }) => { const Ico = Icons[name]; return Ico ? <Ico width={size} height={size} className={className} /> : null; };
 
@@ -515,7 +509,7 @@
             const [authError, setAuthError] = useState('');
             const [permissionError, setPermissionError] = useState(false);
             const [isProcessingDelivery, setIsProcessingDelivery] = useState(false);
-            const isProcessingRef = useRef(false); // NOVA PROTEÇÃO ANTI-DUPLO-CLIQUE
+            const isProcessingRef = useRef(false);
 
             const [permissions, setPermissions] = useState({ canImportSignature: false, requireSelfie: false });
             const [adminUsers, setAdminUsers] = useState([]);
@@ -534,8 +528,14 @@
             const [employeeSearch, setEmployeeSearch] = useState('');
             const [employeeCompanyFilter, setEmployeeCompanyFilter] = useState('TODOS');
 
+            // --- FILTRO DE DATAS DO DASHBOARD ---
+            const [dashboardDates, setDashboardDates] = useState({
+                start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                end: new Date().toISOString().split('T')[0]
+            });
+
             const [selectedEmployees, setSelectedEmployees] = useState([]);
-            const [selectedDeliveries, setSelectedDeliveries] = useState([]); // NOVA SELEÇÃO EM LOTE PARA ENTREGAS
+            const [selectedDeliveries, setSelectedDeliveries] = useState([]); 
             const [editingEmployee, setEditingEmployee] = useState(null);
             const [bulkCompanyId, setBulkCompanyId] = useState('');
 
@@ -564,7 +564,6 @@
 
             const isSuperAdmin = user && user.email?.toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase().trim();
 
-            // CONEXÃO COM A BASE DE DADOS ORIGINAL
             const getRef = (collectionName) => {
                 return db.collection('artifacts').doc(appId).collection(collectionName);
             };
@@ -599,7 +598,6 @@
                 window.html2pdf().set(opt).from(element).save();
             };
 
-            // Formatação de Datas Segura COM SEGUNDOS (Para caçar duplicações)
             const renderDate = (timestamp) => {
                 try {
                     const formatOpt = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
@@ -637,13 +635,9 @@
                 try {
                     const zip = new window.JSZip();
                     
-                    // Container com CSS otimizado para não ser ignorado pelo html2canvas
                     const hiddenContainer = document.createElement('div');
                     hiddenContainer.className = 'pdf-render-container';
                     hiddenContainer.id = 'temp-pdf-render-container';
-                    // Tornamos visível momentaneamente durante o processamento, 
-                    // mas protegido pelo z-index abaixo do modal
-                    hiddenContainer.style.visibility = 'visible'; 
                     document.body.appendChild(hiddenContainer);
 
                     let count = 0;
@@ -721,10 +715,8 @@
                             </div>
                         `;
 
-                        // Pausa generosa para garantir que o browser pinta o DOM e as imagens Base64 carregam
                         await new Promise(resolve => setTimeout(resolve, 600)); 
 
-                        // Usar o container interno como target para garantir que html2canvas tem um elemento contido
                         const targetElement = hiddenContainer.querySelector('#pdf-content-wrapper');
 
                         if (targetElement) {
@@ -766,20 +758,20 @@
                 }
             };
 
+            // --- MÉTRICAS DO DASHBOARD (COM FILTRO DE DATA E SETOR) ---
             const dashboardMetrics = useMemo(() => {
-                const now = new Date();
-                const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const dayOfWeek = now.getDay(); 
-                const startOfWeek = new Date(startOfDay);
-                startOfWeek.setDate(startOfDay.getDate() - dayOfWeek);
-                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const start = new Date(dashboardDates.start);
+                start.setHours(0, 0, 0, 0);
+                const end = new Date(dashboardDates.end);
+                end.setHours(23, 59, 59, 999);
 
+                let totalPeriod = 0;
                 let epiMap = {}; 
+                let sectorMap = {};
 
                 deliveries.forEach(d => {
                     if (d.status !== 'signed') return;
                     
-                    // Proteção anti-crash para datas
                     let dDate = new Date();
                     if (d.createdAt) {
                         if (typeof d.createdAt.toDate === 'function') dDate = d.createdAt.toDate();
@@ -787,34 +779,29 @@
                         else dDate = new Date(d.createdAt);
                     }
 
-                    const qty = parseInt(d.quantityDelivered) || 1;
-                    const id = d.epiId || d.epiName;
+                    if (dDate >= start && dDate <= end) {
+                        const qty = parseInt(d.quantityDelivered) || 1;
+                        totalPeriod += qty;
 
-                    if (!epiMap[id]) {
-                        epiMap[id] = { name: d.epiName, ca: d.epiCA, today: 0, week: 0, month: 0 };
+                        // Agrupar por EPI
+                        const epiKey = d.epiId || d.epiName;
+                        if (!epiMap[epiKey]) epiMap[epiKey] = { name: d.epiName, ca: d.epiCA, qty: 0 };
+                        epiMap[epiKey].qty += qty;
+
+                        // Agrupar por Setor
+                        const sectorKey = d.employeeSector && d.employeeSector.trim() !== '' ? d.employeeSector : 'Não Definido';
+                        if (!sectorMap[sectorKey]) sectorMap[sectorKey] = { name: sectorKey, qty: 0 };
+                        sectorMap[sectorKey].qty += qty;
                     }
-                    
-                    if (dDate >= startOfDay) epiMap[id].today += qty;
-                    if (dDate >= startOfWeek) epiMap[id].week += qty;
-                    if (dDate >= startOfMonth) epiMap[id].month += qty;
                 });
 
-                const fullReport = Object.values(epiMap)
-                    .filter(i => i.month > 0 || i.week > 0 || i.today > 0)
-                    .sort((a, b) => b.month - a.month);
-                
-                const stats = { 
-                    today: fullReport.reduce((acc, i) => acc + i.today, 0),
-                    week: fullReport.reduce((acc, i) => acc + i.week, 0),
-                    month: fullReport.reduce((acc, i) => acc + i.month, 0),
-                    fullReport 
+                return { 
+                    totalPeriod,
+                    epis: Object.values(epiMap).sort((a, b) => b.qty - a.qty),
+                    sectors: Object.values(sectorMap).sort((a, b) => b.qty - a.qty)
                 };
+            }, [deliveries, dashboardDates]);
 
-                return stats;
-            }, [deliveries]);
-
-            // --- NOVO: HISTÓRICO CONSOLIDADO ---
-            // Junta os logs gerais com as entregas reais do banco de dados para ver o histórico retroativo
             const combinedLogs = useMemo(() => {
                 const deliveryLogs = deliveries.map(d => ({
                     id: d.id,
@@ -824,7 +811,6 @@
                     details: `Entregue ${d.quantityDelivered}x ${d.epiName} para ${d.employeeName}`
                 }));
 
-                // Filtra os logs genéricos para não duplicar se já houver log de "Entrega Processada" antigo
                 const genericLogs = logs.filter(l => l.action !== 'Entrega Processada');
 
                 return [...deliveryLogs, ...genericLogs].sort((a, b) => {
@@ -868,7 +854,6 @@
                 }
             }, [isSuperAdmin, view]);
 
-            // --- CARREGAR DADOS ---
             useEffect(() => {
                 if(!user || !db) return;
                 
@@ -936,7 +921,6 @@
                 }
             }, [employees.length, myPermId, isSuperAdmin, user]);
 
-            // --- ADMIN FUNÇÕES ---
             const handleAddAdminUser = async () => {
                 if (!newAdmin.email) return alert("Preencha o e-mail.");
                 try {
@@ -985,10 +969,7 @@
                     
                     const batch = db.batch();
                     itemsToDelete.forEach(item => {
-                        // Apaga a entrega
                         batch.delete(getRef('deliveries').doc(item.id));
-                        
-                        // MAGIA: DEVOLVE O STOCK!
                         if (item.epiId) {
                             const invRef = getRef('inventory').doc(item.epiId);
                             batch.update(invRef, {
@@ -997,9 +978,7 @@
                         }
                     });
                     await batch.commit();
-
                     addLog('Registo Removido', `Entrega apagada e stock devolvido`, 'delivery');
-
                     if (pendingDeliveryToSign && (pendingDeliveryToSign.batchId === batchId || pendingDeliveryToSign.id === fallbackId)) {
                         handleToggleModal('sign', false);
                         setPendingDeliveryToSign(null);
@@ -1009,7 +988,6 @@
                 }
             };
 
-            // EXCLUSÃO EM LOTE (BULK DELETE) PARA ENTREGAS NA FICHA
             const handleBulkDeleteDeliveries = async () => {
                 if(selectedDeliveries.length === 0) return;
                 if(!window.confirm(`Atenção: Deseja excluir ${selectedDeliveries.length} registo(s) de entrega? O stock correspondente será DEVOLVIDO ao inventário automaticamente.`)) return;
@@ -1019,10 +997,7 @@
                     const itemsToDelete = deliveries.filter(d => selectedDeliveries.includes(d.id));
 
                     itemsToDelete.forEach(item => {
-                        // Apaga a entrega
                         batch.delete(getRef('deliveries').doc(item.id));
-                        
-                        // Devolve o stock
                         if (item.epiId) {
                             const invRef = getRef('inventory').doc(item.epiId);
                             batch.update(invRef, {
@@ -1033,14 +1008,13 @@
 
                     await batch.commit();
                     addLog('Registo Removido em Lote', `${selectedDeliveries.length} entregas apagadas e stock devolvido`, 'delivery');
-                    setSelectedDeliveries([]); // Limpa a seleção após sucesso
+                    setSelectedDeliveries([]);
                 } catch(e) {
                     if(e.code==='permission-denied') setPermissionError(true);
                     else console.error(e);
                 }
             };
 
-            // --- FUNÇÕES DE IMPORTAÇÃO/EXPORTAÇÃO ---
             const importData = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -1103,7 +1077,7 @@
                             if(row.length < 3) return;
                             const docRef = getRef(importType).doc();
                             if(importType === 'employees') {
-                                batch.set(docRef, { name: row[0], role: row[1], sector: row[2], companyId: importCompany, createdAt: new Date(), addedBy: user.email });
+                                batch.set(docRef, { name: row[0], role: row[1], sector: row[2] || '', companyId: importCompany, createdAt: new Date(), addedBy: user.email });
                                 added++;
                             } else if(importType === 'inventory') {
                                 const name = row[0]; const ca = row[2];
@@ -1227,7 +1201,7 @@
             };
 
             const processDelivery = async (signature = null, selfie = null) => {
-                if (isProcessingRef.current) return; // Tranca ativada
+                if (isProcessingRef.current) return;
                 if (!deliveryEmployeeId || deliveryCart.length === 0) return alert("Dados incompletos");
                 
                 isProcessingRef.current = true;
@@ -1264,8 +1238,6 @@
                     
                     await batch.commit();
 
-                    // REMOVIDO addLog('Entrega Processada'...) daqui para não duplicar com o combinedLogs nativo
-
                     handleToggleModal('delivery', false); handleToggleModal('sign', false); setDeliveryCart([]); setDeliveryEmployeeId('');
                     if(signature) { setSelectedEmployeeForReport(emp); setView('reports'); } else setView('pending-signatures');
                 } catch(e) { 
@@ -1277,7 +1249,7 @@
             };
 
             const signPendingDelivery = async (signature, selfie) => {
-                if (isProcessingRef.current) return; // Tranca ativada
+                if (isProcessingRef.current) return;
                 if (!pendingDeliveryToSign) return;
                 
                 isProcessingRef.current = true;
@@ -1307,19 +1279,20 @@
                 </button>
             );
 
-            // Filter logic for employees view with null protection
+            // Filter logic for employees view
             const filteredEmployees = employees.filter(e => {
                 const searchLower = (employeeSearch || '').toLowerCase();
                 const nameMatch = (e.name || '').toLowerCase().includes(searchLower);
                 const roleMatch = (e.role || '').toLowerCase().includes(searchLower);
+                const sectorMatch = (e.sector || '').toLowerCase().includes(searchLower); // Agora pesquisa no setor também
                 const matchesCompany = employeeCompanyFilter === 'TODOS' || e.companyId === employeeCompanyFilter || e.company === employeeCompanyFilter;
-                return (nameMatch || roleMatch) && matchesCompany;
+                return (nameMatch || roleMatch || sectorMatch) && matchesCompany;
             });
 
             const handleSelectAllEmployees = (e) => setSelectedEmployees(e.target.checked ? filteredEmployees.map(emp => emp.id) : []);
             const handleSelectEmployee = (id) => setSelectedEmployees(selectedEmployees.includes(id) ? selectedEmployees.filter(empId => empId !== id) : [...selectedEmployees, id]);
 
-            // Lógica de filtro para entregas (dentro da ficha de EPI)
+            // Lógica de filtro para entregas
             const employeeDeliveries = selectedEmployeeForReport ? deliveries.filter(d => d.employeeId === selectedEmployeeForReport.id && d.status === 'signed') : [];
             const handleSelectAllDeliveries = (e) => setSelectedDeliveries(e.target.checked ? employeeDeliveries.map(d => d.id) : []);
             const handleSelectDelivery = (id) => setSelectedDeliveries(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
@@ -1527,41 +1500,109 @@
                                 </div>
                             )}
 
+                            {/* NOVO DASHBOARD ROBUSTO */}
                             {view === 'dashboard' && !isSuperAdmin && (
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm"><p className="text-sm text-slate-500 font-bold">COLABORADORES</p><p className="text-3xl font-bold mt-2 text-slate-800">{employees.length}</p></div>
-                                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm"><p className="text-sm text-slate-500 font-bold">ITENS EM ESTOQUE</p><p className="text-3xl font-bold mt-2 text-slate-800">{inventory.length}</p></div>
-                                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm"><p className="text-sm text-slate-500 font-bold">ENTREGAS TOTAIS</p><p className="text-3xl font-bold mt-2 text-slate-800">{deliveries.filter(d=>d.status==='signed').length}</p></div>
-                                    </div>
-                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                                        <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2 uppercase tracking-wide text-sm"><Icon name="BarChart" size={18}/> Previsão de Consumo de EPIs</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 flex flex-col items-center"><span className="text-blue-600 font-bold text-xs uppercase">Hoje</span><span className="text-2xl font-black text-blue-900 mt-1">{dashboardMetrics.today}</span></div>
-                                            <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-100 flex flex-col items-center"><span className="text-indigo-600 font-bold text-xs uppercase">Esta Semana</span><span className="text-2xl font-black text-indigo-900 mt-1">{dashboardMetrics.week}</span></div>
-                                            <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 flex flex-col items-center"><span className="text-purple-600 font-bold text-xs uppercase">Este Mês</span><span className="text-2xl font-black text-purple-900 mt-1">{dashboardMetrics.month}</span></div>
-                                        </div>
+                                <div className="space-y-6 animate-in fade-in">
+                                    
+                                    {/* CABEÇALHO DO DASHBOARD: Filtro de Datas */}
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                         <div>
-                                            <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 border-b pb-2">Detalhamento por Item (Fluxo de Saída)</h4>
-                                            <div className="overflow-x-auto">
+                                            <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2"><Icon name="BarChart" size={20} className="text-brand-600"/> Análise de Consumo</h3>
+                                            <p className="text-xs text-slate-500 mt-1">Acompanhe as métricas de entrega baseadas no período selecionado.</p>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase">De</label>
+                                                <input type="date" className="p-2 border border-slate-200 rounded bg-white text-sm outline-none focus:border-brand-500 font-bold text-slate-700" value={dashboardDates.start} onChange={e => setDashboardDates({...dashboardDates, start: e.target.value})} />
+                                            </div>
+                                            <span className="text-slate-300 hidden sm:inline">-</span>
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase">Até</label>
+                                                <input type="date" className="p-2 border border-slate-200 rounded bg-white text-sm outline-none focus:border-brand-500 font-bold text-slate-700" value={dashboardDates.end} onChange={e => setDashboardDates({...dashboardDates, end: e.target.value})} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* MÉTRICAS GERAIS */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                                            <p className="text-xs text-slate-400 font-black tracking-widest uppercase mb-1">Colaboradores Ativos</p>
+                                            <p className="text-4xl font-black text-slate-800">{employees.length}</p>
+                                        </div>
+                                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                                            <p className="text-xs text-slate-400 font-black tracking-widest uppercase mb-1">Itens Diferentes no Estoque</p>
+                                            <p className="text-4xl font-black text-slate-800">{inventory.length}</p>
+                                        </div>
+                                        <div className="bg-brand-700 p-6 rounded-xl border border-brand-800 shadow-lg flex flex-col justify-center relative overflow-hidden">
+                                            <div className="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4"><Icon name="Package" size={100} /></div>
+                                            <p className="text-xs text-brand-200 font-black tracking-widest uppercase mb-1 relative z-10">Entregas no Período Selecionado</p>
+                                            <p className="text-5xl font-black text-white relative z-10">{dashboardMetrics.totalPeriod}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* TABELAS DE ANÁLISE: Lado a Lado em ecrãs grandes */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        
+                                        {/* CONSUMO POR SETOR */}
+                                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                                            <div className="p-5 border-b border-slate-100 bg-slate-50 rounded-t-xl">
+                                                <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2"><Icon name="Building" size={16}/> Consumo por Setor</h4>
+                                            </div>
+                                            <div className="flex-1 overflow-y-auto max-h-[400px]">
                                                 <table className="w-full text-sm text-left">
-                                                    <thead className="bg-slate-50 text-slate-500 font-medium"><tr><th className="py-3 px-3 rounded-l-lg">EPI</th><th className="py-3 px-3">C.A.</th><th className="py-3 px-3 text-center text-blue-600">Dia</th><th className="py-3 px-3 text-center text-indigo-600">Semana</th><th className="py-3 px-3 text-center text-purple-600 rounded-r-lg">Mês</th></tr></thead>
-                                                    <tbody className="divide-y divide-slate-100">
-                                                        {dashboardMetrics.fullReport.length > 0 ? dashboardMetrics.fullReport.map((item, idx) => (
-                                                            <tr key={idx} className="hover:bg-slate-50 transition-colors"><td className="py-3 px-3 font-bold text-slate-700">{item.name}</td><td className="py-3 px-3 text-xs text-slate-500 font-mono">{item.ca}</td><td className="py-3 px-3 text-center font-bold text-blue-900 bg-blue-50/50">{item.today > 0 ? item.today : '-'}</td><td className="py-3 px-3 text-center font-bold text-indigo-900 bg-indigo-50/50">{item.week > 0 ? item.week : '-'}</td><td className="py-3 px-3 text-center font-bold text-purple-900 bg-purple-50/50">{item.month > 0 ? item.month : '-'}</td></tr>
-                                                        )) : (<tr><td colSpan="5" className="py-8 text-center text-slate-400 italic">Sem dados de consumo registados ainda.</td></tr>)}
+                                                    <thead className="bg-white text-slate-400 font-bold sticky top-0 border-b border-slate-100 shadow-sm">
+                                                        <tr><th className="py-3 px-5">Nome do Setor</th><th className="py-3 px-5 text-right w-24">Unidades</th></tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-50">
+                                                        {dashboardMetrics.sectors.length > 0 ? dashboardMetrics.sectors.map((sec, idx) => (
+                                                            <tr key={idx} className="hover:bg-slate-50 transition-colors group">
+                                                                <td className="py-3 px-5 font-bold text-slate-700">{sec.name}</td>
+                                                                <td className="py-3 px-5 text-right font-black text-brand-600 bg-brand-50/30 group-hover:bg-brand-50">{sec.qty}</td>
+                                                            </tr>
+                                                        )) : (<tr><td colSpan="2" className="py-8 text-center text-slate-400 italic">Sem entregas no período.</td></tr>)}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        {/* CONSUMO POR EQUIPAMENTO */}
+                                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                                            <div className="p-5 border-b border-slate-100 bg-slate-50 rounded-t-xl">
+                                                <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2"><Icon name="Package" size={16}/> Top Equipamentos Consumidos</h4>
+                                            </div>
+                                            <div className="flex-1 overflow-y-auto max-h-[400px]">
+                                                <table className="w-full text-sm text-left">
+                                                    <thead className="bg-white text-slate-400 font-bold sticky top-0 border-b border-slate-100 shadow-sm">
+                                                        <tr><th className="py-3 px-5">EPI</th><th className="py-3 px-3 w-20">C.A.</th><th className="py-3 px-5 text-right w-24">Unidades</th></tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-50">
+                                                        {dashboardMetrics.epis.length > 0 ? dashboardMetrics.epis.map((item, idx) => (
+                                                            <tr key={idx} className="hover:bg-slate-50 transition-colors group">
+                                                                <td className="py-3 px-5 font-bold text-slate-700">{item.name}</td>
+                                                                <td className="py-3 px-3 text-xs text-slate-500 font-mono">{item.ca}</td>
+                                                                <td className="py-3 px-5 text-right font-black text-brand-600 bg-brand-50/30 group-hover:bg-brand-50">{item.qty}</td>
+                                                            </tr>
+                                                        )) : (<tr><td colSpan="3" className="py-8 text-center text-slate-400 italic">Sem entregas no período.</td></tr>)}
                                                     </tbody>
                                                 </table>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Icon name="AlertTriangle" className="text-amber-500"/> Níveis de Estoque Crítico</h3>
+
+                                    {/* ALERTA DE ESTOQUE CRÍTICO */}
+                                    <div className="bg-white p-6 rounded-xl border border-red-200 shadow-sm">
+                                        <h3 className="font-bold text-red-800 mb-4 flex items-center gap-2"><Icon name="AlertTriangle" className="text-red-500"/> Alertas: Níveis de Estoque Crítico (Menos de 5 un.)</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {inventory.filter(i => i.quantity < 5).map(item => (<div key={item.id} className="p-4 bg-amber-50 border border-amber-100 rounded-lg flex justify-between items-center"><div><p className="font-bold text-slate-800">{item.name}</p><p className="text-xs text-amber-700 font-medium">CA: {item.ca}</p></div><span className="text-xl font-bold text-amber-600">{isNaN(item.quantity) ? 'Erro' : item.quantity} un</span></div>))}
-                                            {inventory.filter(i => i.quantity < 5).length === 0 && <p className="text-sm text-slate-400 italic">Todos os itens com estoque adequado.</p>}
+                                            {inventory.filter(i => i.quantity < 5).map(item => (
+                                                <div key={item.id} className="p-4 bg-red-50 border border-red-100 rounded-lg flex justify-between items-center">
+                                                    <div><p className="font-bold text-red-900">{item.name}</p><p className="text-xs text-red-700 font-medium">CA: {item.ca}</p></div>
+                                                    <span className="text-xl font-black text-red-600">{isNaN(item.quantity) ? 'Erro' : item.quantity} un</span>
+                                                </div>
+                                            ))}
+                                            {inventory.filter(i => i.quantity < 5).length === 0 && <p className="text-sm text-slate-400 italic">Todos os itens com quantidade saudável.</p>}
                                         </div>
                                     </div>
+
                                 </div>
                             )}
 
@@ -1592,9 +1633,9 @@
                             )}
 
                             {view === 'employees' && !isSuperAdmin && (
-                                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
+                                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full animate-in fade-in">
                                     <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-                                        <h3 className="font-bold text-slate-800">Lista de Colaboradores</h3>
+                                        <h3 className="font-bold text-slate-800 text-lg">Lista de Colaboradores</h3>
                                         <div className="flex gap-2">
                                             <button onClick={()=>handleToggleModal('addEmp', true)} className="bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-brand-800"><Icon name="Plus"/> Novo</button>
                                             <button onClick={()=>{setImportType('employees'); handleToggleModal('import', true)}} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-50"><Icon name="Upload"/> Importar</button>
@@ -1607,7 +1648,7 @@
                                             <div className="relative flex-1 max-w-md">
                                                 <input 
                                                     type="text" 
-                                                    placeholder="Pesquisar por nome ou função..." 
+                                                    placeholder="Pesquisar por nome, setor ou função..." 
                                                     className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all"
                                                     value={employeeSearch}
                                                     onChange={e => setEmployeeSearch(e.target.value)}
@@ -1659,6 +1700,7 @@
                                                     </th>
                                                     <th className="px-6 py-4">Nome</th>
                                                     <th className="px-6 py-4">Empresa</th>
+                                                    <th className="px-6 py-4">Setor</th>
                                                     <th className="px-6 py-4">Função</th>
                                                     <th className="px-6 py-4 text-right">Ações</th>
                                                 </tr>
@@ -1674,8 +1716,9 @@
                                                                 onChange={() => handleSelectEmployee(e.id)}
                                                             />
                                                         </td>
-                                                        <td className="px-6 py-4 font-medium text-slate-800">{e.name}</td>
+                                                        <td className="px-6 py-4 font-bold text-slate-800">{e.name}</td>
                                                         <td className="px-6 py-4"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest">{getCompanyAlias(e)}</span></td>
+                                                        <td className="px-6 py-4 font-medium text-brand-600">{e.sector || <span className="text-slate-300 italic font-normal">Não definido</span>}</td>
                                                         <td className="px-6 py-4 text-slate-500">{e.role}</td>
                                                         <td className="px-6 py-4 text-right flex justify-end gap-3">
                                                             <button onClick={() => openEditEmployeeModal(e)} className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-1.5 rounded transition-colors" title="Editar"><Icon name="PenLine" size={18}/></button>
@@ -1684,7 +1727,7 @@
                                                     </tr>
                                                 ))}
                                                 {filteredEmployees.length === 0 && (
-                                                    <tr><td colSpan="5" className="px-6 py-12 text-center text-slate-400 italic">Nenhum colaborador encontrado.</td></tr>
+                                                    <tr><td colSpan="6" className="px-6 py-12 text-center text-slate-400 italic">Nenhum colaborador encontrado.</td></tr>
                                                 )}
                                             </tbody>
                                         </table>
@@ -1723,7 +1766,7 @@
                             {view === 'reports' && !isSuperAdmin && (
                                 <div>
                                     {!selectedEmployeeForReport ? (
-                                        <div className="space-y-4">
+                                        <div className="space-y-4 animate-in fade-in">
                                             <div className="flex flex-col sm:flex-row gap-4 mb-8">
                                                 <div className="relative flex-1">
                                                     <input
@@ -1749,6 +1792,7 @@
                                                         <button key={e.id} onClick={() => { setSelectedEmployeeForReport(e); setSelectedDeliveries([]); }} className="p-6 bg-white border border-slate-200 rounded-xl hover:shadow-md text-left transition-all relative overflow-hidden group">
                                                             <div className="absolute top-0 right-0 bg-slate-50 text-slate-400 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-xl border-b border-l border-slate-200">{getCompanyAlias(e)}</div>
                                                             <p className="font-bold text-slate-800">{e.name}</p>
+                                                            <p className="text-xs text-brand-600 font-bold my-1">{e.sector || 'Sem setor'}</p>
                                                             <p className="text-xs text-slate-500 uppercase">{e.role}</p>
                                                         </button>
                                                     ))
@@ -1766,7 +1810,7 @@
                                             const hasAnySelfie = employeeDeliveries.some(d => d.selfie);
 
                                             return (
-                                                <div className="bg-white rounded-xl shadow-lg print-content relative">
+                                                <div className="bg-white rounded-xl shadow-lg print-content relative animate-in fade-in">
                                                     
                                                     {/* BARRA DE AÇÕES EM LOTE PARA ENTREGAS */}
                                                     {selectedDeliveries.length > 0 && (
@@ -1786,8 +1830,8 @@
                                                                     <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">SEGURANÇA DO TRABALHO</p>
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <p className="text-xs font-bold text-slate-900 uppercase">${empComp.razao}</p>
-                                                                    <p className="text-xs text-slate-500 font-mono">CNPJ: ${empComp.cnpj}</p>
+                                                                    <p className="text-xs font-bold text-slate-900 uppercase">{empComp.razao}</p>
+                                                                    <p className="text-xs text-slate-500 font-mono">CNPJ: {empComp.cnpj}</p>
                                                                 </div>
                                                             </div>
 
