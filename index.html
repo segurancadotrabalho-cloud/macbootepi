@@ -59,14 +59,15 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         #global-error { display: none; position: fixed; inset: 0; background: #fef2f2; z-index: 10000; padding: 2rem; color: #991b1b; font-family: monospace; overflow: auto; }
         
-        /* Nova classe para o contentor do PDF invisível mas renderizável perfeitamente */
+        /* Renderizador invisível para os utilizadores, mas visível para o gerador de PDF */
         .pdf-render-container {
-            position: fixed;
+            position: absolute;
             top: 0;
-            left: 200vw; /* Coloca a ficha fora do ecrã (à direita), mas o navegador ainda a desenha! */
+            left: 0;
             width: 210mm;
+            min-height: 297mm;
             background-color: white;
-            z-index: 9999;
+            z-index: 9998; /* Imediatamente abaixo do overlay de loading que é 9999 */
             pointer-events: none;
         }
     </style>
@@ -76,7 +77,7 @@
     <div id="global-error">
         <h2 class="text-2xl font-bold mb-2 text-red-800">Erro Crítico</h2>
         <p class="mb-4 text-red-700">O sistema não conseguiu iniciar. Detalhes abaixo:</p>
-        <pre id="error-msg" class="bg-white p-4 border border-red-300 rounded mb-4 text-xs"></pre>
+        <pre id="error-msg" class="bg-white p-4 border border-red-300 rounded mb-4 text-xs whitespace-pre-wrap"></pre>
         <button onclick="window.location.reload()" class="px-4 py-2 bg-red-700 text-white rounded font-bold">Tentar Novamente</button>
     </div>
 
@@ -91,7 +92,7 @@
         window.onerror = function(msg, url, line, col, error) {
             document.getElementById('initial-loader').style.display = 'none';
             document.getElementById('global-error').style.display = 'block';
-            document.getElementById('error-msg').innerText = msg + "\nLinha: " + line;
+            document.getElementById('error-msg').innerText = msg + "\nLinha: " + line + "\nColuna: " + col;
         };
     </script>
 
@@ -152,12 +153,11 @@
             DownloadCloud: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>,
             Filter: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
             Building: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg>,
-            Settings: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0 2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
+            Settings: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
             Image: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
             Camera: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
             RefreshCw: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
-            Activity: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>,
-            Briefcase: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            Activity: (p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
         };
         const Icon = ({ name, size = 20, className }) => { const Ico = Icons[name]; return Ico ? <Ico width={size} height={size} className={className} /> : null; };
 
@@ -640,6 +640,9 @@
                     hiddenContainer.id = 'temp-pdf-render-container';
                     document.body.appendChild(hiddenContainer);
 
+                    // Garantir scroll a 0 para não quebrar a captura do ecrã do html2canvas
+                    window.scrollTo(0, 0);
+
                     let count = 0;
                     for (const emp of employeesWithDeliveries) {
                         setZipProgress({ current: count + 1, total: employeesWithDeliveries.length, currentName: emp.name });
@@ -649,7 +652,7 @@
                         const hasAnySelfie = empDeliveries.some(d => d.selfie);
 
                         hiddenContainer.innerHTML = `
-                            <div class="p-10 bg-white" id="pdf-content-wrapper">
+                            <div class="p-10 bg-white w-full h-full" id="pdf-content-wrapper">
                                 <div class="border-b-2 border-slate-900 pb-6 mb-6 flex justify-between items-start gap-6">
                                     <div>
                                         <h1 class="text-2xl font-black text-slate-900 mb-1 uppercase tracking-tighter">FICHA DE EPI</h1>
@@ -695,7 +698,7 @@
                                                 <td class="border-b border-slate-200 p-4 text-center font-mono font-bold text-slate-500">${del.epiCA}</td>
                                                 <td class="border-b border-slate-200 p-4 text-center font-black text-lg">${del.quantityDelivered}</td>
                                                 <td class="border-b border-slate-200 p-4 text-center align-middle">
-                                                    <img src="${del.signature}" style="max-height: 40px; max-width: 100px; display: block; margin: 0 auto; filter: contrast(1.2) grayscale(1);" alt="Assinatura" />
+                                                    <img src="${del.signature}" style="max-height: 40px; max-width: 100px; display: block; margin: 0 auto;" alt="Assinatura" />
                                                 </td>
                                                 ${hasAnySelfie ? `
                                                     <td class="border-b border-slate-200 p-4 text-center align-middle">
@@ -724,7 +727,7 @@
                                 margin:       10,
                                 filename:     `Ficha_EPI_${emp.name.replace(/\s+/g, '_')}.pdf`,
                                 image:        { type: 'jpeg', quality: 0.98 },
-                                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                                html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 800 },
                                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                             };
 
@@ -758,7 +761,7 @@
                 }
             };
 
-            // --- MÉTRICAS DO DASHBOARD (COM FILTRO DE DATA E SETOR) ---
+            // --- MÉTRICAS DO DASHBOARD ---
             const dashboardMetrics = useMemo(() => {
                 const start = new Date(dashboardDates.start);
                 start.setHours(0, 0, 0, 0);
@@ -783,22 +786,29 @@
                         const qty = parseInt(d.quantityDelivered) || 1;
                         totalPeriod += qty;
 
-                        // Agrupar por EPI
+                        // Agrupar por EPI Geral
                         const epiKey = d.epiId || d.epiName;
                         if (!epiMap[epiKey]) epiMap[epiKey] = { name: d.epiName, ca: d.epiCA, qty: 0 };
                         epiMap[epiKey].qty += qty;
 
-                        // Agrupar por Setor
-                        const sectorKey = d.employeeSector && d.employeeSector.trim() !== '' ? d.employeeSector : 'Não Definido';
-                        if (!sectorMap[sectorKey]) sectorMap[sectorKey] = { name: sectorKey, qty: 0 };
+                        // Agrupar por Setor -> EPIs
+                        const sectorKey = d.employeeSector && d.employeeSector.trim() !== '' ? d.employeeSector.toUpperCase() : 'NÃO DEFINIDO';
+                        if (!sectorMap[sectorKey]) sectorMap[sectorKey] = { name: sectorKey, qty: 0, epis: {} };
                         sectorMap[sectorKey].qty += qty;
+
+                        const epiName = d.epiName;
+                        if (!sectorMap[sectorKey].epis[epiName]) sectorMap[sectorKey].epis[epiName] = { name: epiName, ca: d.epiCA, qty: 0 };
+                        sectorMap[sectorKey].epis[epiName].qty += qty;
                     }
                 });
 
                 return { 
                     totalPeriod,
                     epis: Object.values(epiMap).sort((a, b) => b.qty - a.qty),
-                    sectors: Object.values(sectorMap).sort((a, b) => b.qty - a.qty)
+                    sectors: Object.values(sectorMap).map(sec => ({
+                        ...sec,
+                        episList: Object.values(sec.epis).sort((a, b) => b.qty - a.qty)
+                    })).sort((a, b) => b.qty - a.qty)
                 };
             }, [deliveries, dashboardDates]);
 
@@ -854,6 +864,7 @@
                 }
             }, [isSuperAdmin, view]);
 
+            // --- CARREGAR DADOS ---
             useEffect(() => {
                 if(!user || !db) return;
                 
@@ -1284,7 +1295,7 @@
                 const searchLower = (employeeSearch || '').toLowerCase();
                 const nameMatch = (e.name || '').toLowerCase().includes(searchLower);
                 const roleMatch = (e.role || '').toLowerCase().includes(searchLower);
-                const sectorMatch = (e.sector || '').toLowerCase().includes(searchLower); // Agora pesquisa no setor também
+                const sectorMatch = (e.sector || '').toLowerCase().includes(searchLower);
                 const matchesCompany = employeeCompanyFilter === 'TODOS' || e.companyId === employeeCompanyFilter || e.company === employeeCompanyFilter;
                 return (nameMatch || roleMatch || sectorMatch) && matchesCompany;
             });
@@ -1317,7 +1328,7 @@
                     
                     {/* MODAL DE BLOQUEIO / CARREGAMENTO DE ZIP */}
                     {isGeneratingZip && (
-                        <div className="fixed inset-0 z-[9999] bg-slate-900/90 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+                        <div className="fixed inset-0 z-[9999] bg-slate-900 flex flex-col items-center justify-center p-4">
                             <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center space-y-6">
                                 <div className="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto animate-pulse">
                                     <Icon name="DownloadCloud" size={32} />
@@ -1533,10 +1544,10 @@
                                             <p className="text-xs text-slate-400 font-black tracking-widest uppercase mb-1">Itens Diferentes no Estoque</p>
                                             <p className="text-4xl font-black text-slate-800">{inventory.length}</p>
                                         </div>
-                                        <div className="bg-brand-700 p-6 rounded-xl border border-brand-800 shadow-lg flex flex-col justify-center relative overflow-hidden">
-                                            <div className="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4"><Icon name="Package" size={100} /></div>
-                                            <p className="text-xs text-brand-200 font-black tracking-widest uppercase mb-1 relative z-10">Entregas no Período Selecionado</p>
-                                            <p className="text-5xl font-black text-white relative z-10">{dashboardMetrics.totalPeriod}</p>
+                                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center relative overflow-hidden">
+                                            <div className="absolute right-0 top-0 opacity-5 transform translate-x-4 -translate-y-4 text-blue-600"><Icon name="Package" size={100} /></div>
+                                            <p className="text-xs text-slate-400 font-black tracking-widest uppercase mb-1 relative z-10">Entregas no Período Selecionado</p>
+                                            <p className="text-5xl font-black text-blue-600 relative z-10">{dashboardMetrics.totalPeriod}</p>
                                         </div>
                                     </div>
 
@@ -1549,19 +1560,31 @@
                                                 <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2"><Icon name="Building" size={16}/> Consumo por Setor</h4>
                                             </div>
                                             <div className="flex-1 overflow-y-auto max-h-[400px]">
-                                                <table className="w-full text-sm text-left">
-                                                    <thead className="bg-white text-slate-400 font-bold sticky top-0 border-b border-slate-100 shadow-sm">
-                                                        <tr><th className="py-3 px-5">Nome do Setor</th><th className="py-3 px-5 text-right w-24">Unidades</th></tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-50">
-                                                        {dashboardMetrics.sectors.length > 0 ? dashboardMetrics.sectors.map((sec, idx) => (
-                                                            <tr key={idx} className="hover:bg-slate-50 transition-colors group">
-                                                                <td className="py-3 px-5 font-bold text-slate-700">{sec.name}</td>
-                                                                <td className="py-3 px-5 text-right font-black text-brand-600 bg-brand-50/30 group-hover:bg-brand-50">{sec.qty}</td>
-                                                            </tr>
-                                                        )) : (<tr><td colSpan="2" className="py-8 text-center text-slate-400 italic">Sem entregas no período.</td></tr>)}
-                                                    </tbody>
-                                                </table>
+                                                {dashboardMetrics.sectors.length > 0 ? (
+                                                    <div className="divide-y divide-slate-100">
+                                                        {dashboardMetrics.sectors.map((sec, idx) => (
+                                                            <div key={idx} className="p-5 hover:bg-slate-50/50 transition-colors group">
+                                                                <div className="flex justify-between items-center mb-3">
+                                                                    <h5 className="font-black text-slate-800 uppercase tracking-tight text-base">{sec.name}</h5>
+                                                                    <span className="bg-brand-100 text-brand-700 px-3 py-1 rounded-lg text-xs font-black shadow-sm">{sec.qty} totais</span>
+                                                                </div>
+                                                                <ul className="space-y-2 border-l-2 border-slate-200 pl-4 ml-1">
+                                                                    {sec.episList.map((epi, epiIdx) => (
+                                                                        <li key={epiIdx} className="flex justify-between items-center text-sm">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                                                                <span className="font-bold text-slate-600">{epi.name}</span>
+                                                                            </div>
+                                                                            <span className="font-black text-slate-700">{epi.qty} <span className="text-[10px] text-slate-400 font-bold uppercase">un</span></span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-8 text-center text-slate-400 italic font-medium">Sem entregas no período selecionado.</div>
+                                                )}
                                             </div>
                                         </div>
 
@@ -1582,7 +1605,7 @@
                                                                 <td className="py-3 px-3 text-xs text-slate-500 font-mono">{item.ca}</td>
                                                                 <td className="py-3 px-5 text-right font-black text-brand-600 bg-brand-50/30 group-hover:bg-brand-50">{item.qty}</td>
                                                             </tr>
-                                                        )) : (<tr><td colSpan="3" className="py-8 text-center text-slate-400 italic">Sem entregas no período.</td></tr>)}
+                                                        )) : (<tr><td colSpan="3" className="py-8 text-center text-slate-400 italic font-medium">Sem entregas no período selecionado.</td></tr>)}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -2144,9 +2167,27 @@
                     
                     <Modal isOpen={modals.backup} onClose={() => handleToggleModal('backup', false)} title="Backup e Migração">
                         <div className="space-y-6">
-                            <div className="bg-blue-50 p-6 rounded-[32px] border border-blue-100 text-sm font-bold text-blue-800"><p className="font-black mb-2 uppercase tracking-widest text-xs text-blue-600">Instruções:</p><ol className="list-decimal list-inside space-y-2"><li>Clique em "Baixar Backup" para guardar uma cópia da base de dados.</li><li>Utilize "Restaurar" apenas se quiser repor um backup antigo.</li></ol></div>
-                            <button onClick={exportData} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-lg active:scale-95 uppercase tracking-widest text-sm"><Icon name="DownloadCloud" size={20} /> Baixar Backup (.json)</button>
-                            <div className="relative border-t-2 border-dashed border-slate-200 pt-6 mt-4"><p className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-4 text-[10px] text-slate-400 font-black uppercase tracking-widest">RESTAURAR BASE DE DADOS</p><label className="flex w-full py-5 bg-white border-2 border-slate-100 rounded-2xl text-center font-black text-slate-500 cursor-pointer hover:border-brand-500 hover:text-brand-600 transition-all justify-center items-center shadow-sm"><input type="file" accept=".json" onChange={importData} className="hidden" /><span className="flex items-center justify-center gap-3 uppercase tracking-widest text-sm"><Icon name="Upload" size={20}/> Selecionar Arquivo JSON</span></label></div>
+                            <div className="bg-blue-50 p-6 rounded-[32px] border border-blue-100 text-sm font-bold text-blue-800">
+                                <p className="font-black mb-2 uppercase tracking-widest text-xs text-blue-600">Instruções:</p>
+                                <ol className="list-decimal list-inside space-y-2">
+                                    <li>Clique em "Baixar Backup" para guardar uma cópia da base de dados.</li>
+                                    <li>Utilize "Restaurar" apenas se quiser repor um backup antigo.</li>
+                                </ol>
+                            </div>
+                            <button onClick={exportData} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-lg active:scale-95 uppercase tracking-widest text-sm">
+                                <Icon name="DownloadCloud" size={20} /> Baixar Backup (.json)
+                            </button>
+                            <div className="relative border-t-2 border-dashed border-slate-200 pt-6 mt-4">
+                                <p className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-4 text-[10px] text-slate-400 font-black uppercase tracking-widest">
+                                    RESTAURAR BASE DE DADOS
+                                </p>
+                                <label className="flex w-full py-5 bg-white border-2 border-slate-100 rounded-2xl text-center font-black text-slate-500 cursor-pointer hover:border-brand-500 hover:text-brand-600 transition-all justify-center items-center shadow-sm">
+                                    <input type="file" accept=".json" onChange={importData} className="hidden" />
+                                    <span className="flex items-center justify-center gap-3 uppercase tracking-widest text-sm">
+                                        <Icon name="Upload" size={20}/> Selecionar Arquivo JSON
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                     </Modal>
 
