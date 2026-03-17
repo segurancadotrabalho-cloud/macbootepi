@@ -120,7 +120,6 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         
-        // VOLTAMOS AO APP ID ORIGINAL PARA RECUPERAR OS DADOS!
         const appId = 'episystem-macboot-v1'; 
 
         const { useState, useEffect, useRef, useMemo } = React;
@@ -177,7 +176,7 @@
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
                     <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden p-8 text-center space-y-6">
                         <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto"><Icon name="AlertTriangle" size={32} /></div>
-                        <div><h3 className="text-2xl font-bold text-slate-900">Acesso Bloqueado</h3><p className="text-slate-500 mt-2">O Firebase está impedindo alterações.</p></div>
+                        <div><h3 className="text-2xl font-bold text-slate-900">Acesso Bloqueado</h3><p className="text-slate-500 mt-2">O Firebase está impedindo alterações devido a permissões insuficientes.</p></div>
                         <button onClick={onClose} className="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors uppercase text-sm">Entendi</button>
                     </div>
                 </div>
@@ -1184,7 +1183,6 @@
 
                     const link = `${window.location.origin}${window.location.pathname}?sign=${token}`;
                     
-                    // Mostra o novo Modal Bonito em vez do prompt feio do navegador
                     setMagicLinkModal({ isOpen: true, link: link });
 
                 } catch(e) {
@@ -2113,12 +2111,12 @@
                                                                             <td className="border-b border-slate-200 p-4 font-black text-slate-800 text-lg uppercase tracking-tight">{del.epiName}</td>
                                                                             <td className="border-b border-slate-200 p-4 text-center font-mono font-bold text-slate-500">{del.epiCA}</td>
                                                                             <td className="border-b border-slate-200 p-4 text-center font-black text-lg">{del.quantityDelivered}</td>
-                                                                        <td className="border-b border-slate-200 p-4 flex justify-center items-center gap-2 relative group">
-                                                                            <img src={del.signature} className="h-14 w-32 object-contain filter contrast-125 mix-blend-multiply block mx-auto" alt="Assinatura" />
-                                                                            <button onClick={() => handleDeleteDeliveryBatch(null, del.id)} className="absolute right-0 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg no-print transition-all" title="Excluir e Devolver Stock"><Icon name="Trash2" size={16} /></button>
-                                                                        </td>
-                                                                        {hasAnySelfie && (
-                                                                            <td className="border-b border-slate-200 p-4 text-center align-middle">
+                                                                            <td className="border-b border-slate-200 p-4 flex justify-center items-center gap-2 relative group">
+                                                                                <img src={del.signature} className="h-14 w-32 object-contain filter contrast-125 mix-blend-multiply block mx-auto" alt="Assinatura" />
+                                                                                <button onClick={() => handleDeleteDeliveryBatch(null, del.id)} className="absolute right-0 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg no-print transition-all" title="Excluir e Devolver Stock"><Icon name="Trash2" size={16} /></button>
+                                                                            </td>
+                                                                            {hasAnySelfie && (
+                                                                                <td className="border-b border-slate-200 p-4 text-center align-middle">
                                                                                     {del.selfie ? (
                                                                                         <img src={del.selfie} className="h-14 w-14 object-cover rounded-lg mx-auto shadow-sm block" alt="Foto Validação" />
                                                                                     ) : (
