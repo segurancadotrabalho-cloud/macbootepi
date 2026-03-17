@@ -58,6 +58,21 @@
         .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #0f172a; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         #global-error { display: none; position: fixed; inset: 0; background: #fef2f2; z-index: 10000; padding: 2rem; color: #991b1b; font-family: monospace; overflow: auto; }
+        
+        /* Renderizador invisível para os utilizadores, mas visível para o gerador de PDF em Lote */
+        .pdf-render-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -9999;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .pdf-render-content {
+            width: 800px;
+            background-color: white;
+            visibility: visible; 
+        }
     </style>
 </head>
 <body class="bg-brand-50 text-slate-800">
@@ -176,7 +191,7 @@
             const [isOpen, setIsOpen] = useState(false);
             const wrapperRef = useRef(null);
             
-            const filtered = options.filter(opt => (opt.label || '').toLowerCase().includes((search || '').toLowerCase()));
+            const filtered = options.filter(opt => String(opt.label || '').toLowerCase().includes(String(search || '').toLowerCase()));
 
             useEffect(() => {
                 const handleClickOutside = (event) => { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false); };
@@ -645,7 +660,7 @@
             const [isGeneratingZip, setIsGeneratingZip] = useState(false);
             const [zipProgress, setZipProgress] = useState({ current: 0, total: 0, currentName: '' });
 
-            const isSuperAdmin = user && user.email?.toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase().trim();
+            const isSuperAdmin = user && String(user.email || '').toLowerCase().trim() === String(SUPER_ADMIN_EMAIL).toLowerCase().trim();
 
             const getRef = (collectionName) => {
                 return db.collection('artifacts').doc(appId).collection(collectionName);
@@ -672,9 +687,9 @@
                 
                 const opt = {
                     margin:       10,
-                    filename:     `Ficha_EPI_${selectedEmployeeForReport.name.replace(/\s+/g, '_')}.pdf`,
+                    filename:     `Ficha_EPI_${String(selectedEmployeeForReport.name || '').replace(/\s+/g, '_')}.pdf`,
                     image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2, useCORS: true, windowWidth: 800, width: 800 },
+                    html2canvas:  { scale: 2, useCORS: true },
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
                 
@@ -721,7 +736,7 @@
                     hiddenContainer.style.position = 'absolute';
                     hiddenContainer.style.left = '-9999px';
                     hiddenContainer.style.top = '0';
-                    hiddenContainer.style.width = '800px';
+                    hiddenContainer.style.width = '1024px';
                     hiddenContainer.id = 'temp-pdf-render-container';
                     document.body.appendChild(hiddenContainer);
 
@@ -736,7 +751,7 @@
                         const hasAnySelfie = empDeliveries.some(d => d.selfie);
 
                         hiddenContainer.innerHTML = `
-                            <div class="p-10 bg-white" id="pdf-content-wrapper" style="width: 800px; max-width: 800px;">
+                            <div class="p-10 bg-white" id="pdf-content-wrapper" style="width: 1024px;">
                                 <div class="border-b-2 border-slate-900 pb-6 mb-6 flex justify-between items-start gap-6">
                                     <div>
                                             <h1 class="text-2xl font-black text-slate-900 mb-1 uppercase tracking-tighter">FICHA DE EPI</h1>
@@ -810,14 +825,14 @@
                         if (targetElement) {
                             const opt = {
                                 margin:       10,
-                                filename:     `Ficha_EPI_${emp.name.replace(/\s+/g, '_')}.pdf`,
+                                filename:     `Ficha_EPI_${String(emp.name || '').replace(/\s+/g, '_')}.pdf`,
                                 image:        { type: 'jpeg', quality: 0.98 },
-                                html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 800, width: 800 },
+                                html2canvas:  { scale: 2, useCORS: true, logging: false },
                                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                             };
 
                             const pdfBlob = await window.html2pdf().set(opt).from(targetElement).output('blob');
-                            zip.file(`Ficha_EPI_${emp.name.replace(/[^a-zA-Z0-9À-ú]/g, '_')}.pdf`, pdfBlob);
+                            zip.file(`Ficha_EPI_${String(emp.name || '').replace(/[^a-zA-Z0-9À-ú]/g, '_')}.pdf`, pdfBlob);
                             count++;
                         }
                     }
@@ -932,7 +947,7 @@
                 try {
                     const persistence = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
                     await auth.setPersistence(persistence);
-                    await auth.signInWithEmailAndPassword(email.toLowerCase().trim(), pass);
+                    await auth.signInWithEmailAndPassword(String(email || '').toLowerCase().trim(), pass);
                 } catch(e) {
                     setAuthLoading(false);
                     setAuthError("Credenciais inválidas.");
@@ -965,7 +980,7 @@
                     if (isSuperAdmin) {
                         setPermissions({ canImportSignature: true, requireSelfie: true });
                     } else {
-                        const myPerm = data.find(p => p.email && user.email && p.email.toLowerCase().trim() === user.email.toLowerCase().trim());
+                        const myPerm = data.find(p => p.email && user.email && String(p.email || '').toLowerCase().trim() === String(user.email || '').toLowerCase().trim());
                         if (myPerm) {
                             setPermissions({ 
                                 canImportSignature: myPerm.canImportSignature === true,
@@ -980,7 +995,7 @@
                 }, err);
 
                 if (!isSuperAdmin) {
-                    const isLegacyUser = user.email && user.email.toLowerCase() === 'segurancadotrabalho@macboot.com.br';
+                    const isLegacyUser = user.email && String(user.email || '').toLowerCase() === 'segurancadotrabalho@macboot.com.br';
                     
                     const filterMyData = (snap) => {
                         return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(item => {
@@ -1062,7 +1077,7 @@
                 if (!newAdmin.email) return alert("Preencha o e-mail.");
                 try {
                     await getRef('permissions').add({
-                        email: newAdmin.email.toLowerCase().trim(),
+                        email: String(newAdmin.email || '').toLowerCase().trim(),
                         canImportSignature: newAdmin.canImportSignature,
                         requireSelfie: newAdmin.requireSelfie,
                         employeeCount: 0
@@ -1238,19 +1253,32 @@
                         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                         const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
 
+                        const rowsToImport = jsonData.slice(1).filter(r => r && r.length > 0 && r[0]);
+                        if (rowsToImport.length === 0) return alert("A planilha parece estar vazia ou sem dados válidos.");
+
+                        const firstRow = rowsToImport[0];
+                        const previewStr = importType === 'employees' 
+                            ? `Nome: ${firstRow[0] || '-'} | Função: ${firstRow[1] || '-'} | Setor: ${firstRow[2] || '-'}` 
+                            : `Nome: ${firstRow[0] || '-'} | CA: ${firstRow[2] || '-'} | Qtd: ${firstRow[3] || '0'}`;
+
+                        if (!window.confirm(`Foram detetadas ${rowsToImport.length} linhas na planilha.\n\nExemplo da 1ª linha a importar:\n${previewStr}\n\nTem a certeza que deseja importar estes dados?`)) {
+                            e.target.value = '';
+                            return;
+                        }
+
                         const batch = db.batch();
                         let added = 0;
                         
-                        jsonData.slice(1).forEach(row => {
-                            if(row.length < 3) return;
+                        rowsToImport.forEach(row => {
+                            if(row.length < 1) return;
                             const docRef = getRef(importType).doc();
                             if(importType === 'employees') {
-                                batch.set(docRef, { name: row[0], role: row[1], sector: row[2] || '', companyId: importCompany, createdAt: new Date(), addedBy: user.email });
+                                batch.set(docRef, { name: String(row[0] || ''), role: String(row[1] || ''), sector: String(row[2] || ''), companyId: importCompany, createdAt: new Date(), addedBy: user.email });
                                 added++;
                             } else if(importType === 'inventory') {
-                                const name = row[0]; const ca = row[2];
+                                const name = String(row[0] || ''); const ca = String(row[2] || '');
                                 if(!inventory.some(i => i.name === name && i.ca === ca)) {
-                                    batch.set(docRef, { name: row[0], complement: row[1]||'', ca: row[2], quantity: parseInt(row[3])||0, createdAt: new Date(), addedBy: user.email });
+                                    batch.set(docRef, { name: name, complement: String(row[1]||''), ca: ca, quantity: parseInt(row[3])||0, createdAt: new Date(), addedBy: user.email });
                                     added++;
                                 }
                             }
@@ -1260,6 +1288,7 @@
                             addLog('Importação Massiva', `Foram importados ${added} registos em ${importType}.`, importType === 'employees' ? 'employee' : 'inventory');
                             alert(`${added} registos importados!`);
                             handleToggleModal('import', false);
+                            e.target.value = '';
                         }).catch(err => { if(err.code === 'permission-denied') setPermissionError(true); else alert("Erro: " + err.message); });
                     } catch(err) { alert("Erro ao ler ficheiro: " + err.message); }
                 };
@@ -1298,7 +1327,7 @@
                 if(!editingEmployee.name || !editingEmployee.companyId) return alert("Nome e Empresa são obrigatórios.");
                 try {
                     await getRef('employees').doc(editingEmployee.id).update({
-                        name: editingEmployee.name, role: editingEmployee.role, sector: editingEmployee.sector, companyId: editingEmployee.companyId
+                        name: String(editingEmployee.name), role: String(editingEmployee.role), sector: String(editingEmployee.sector), companyId: editingEmployee.companyId
                     });
                     handleToggleModal('editEmp', false); setEditingEmployee(null);
                 } catch(e) { if(e.code==='permission-denied') setPermissionError(true); }
@@ -1323,7 +1352,7 @@
             };
 
             const handleAddInventory = async () => {
-                if(inventory.some(i => (i.name||'') === newInventory.name && (i.ca||'') === newInventory.ca)) return alert("Item já existe!");
+                if(inventory.some(i => String(i.name||'') === String(newInventory.name||'') && String(i.ca||'') === String(newInventory.ca||''))) return alert("Item já existe!");
                 try {
                     await getRef('inventory').add({...newInventory, quantity: +newInventory.quantity, createdAt: new Date(), addedBy: user.email});
                     addLog('Novo EPI Registado', `${newInventory.name} (CA: ${newInventory.ca} | Qtd Inicial: ${newInventory.quantity})`, 'inventory');
@@ -1344,14 +1373,23 @@
 
             const handleImport = async () => {
                 const lines = importText.split('\n').filter(l => l.trim());
+                if (lines.length === 0) return;
+
+                const firstRow = lines[0].split(/[,;\t]/).map(s => s.trim());
+                const previewStr = importType === 'employees' 
+                    ? `Nome: ${firstRow[0] || '-'} | Função: ${firstRow[1] || '-'}` 
+                    : `Nome: ${firstRow[0] || '-'} | CA: ${firstRow[2] || '-'}`;
+
+                if (!window.confirm(`Detetámos ${lines.length} linhas de texto.\n\nExemplo da 1ª linha:\n${previewStr}\n\nDeseja confirmar a importação?`)) return;
+
                 const batch = db.batch();
                 let count = 0;
                 for (const line of lines) {
                     const p = line.split(/[,;\t]/).map(s => s.trim());
-                    if (importType === 'employees' && p.length >= 3) {
-                        batch.set(getRef('employees').doc(), { name: p[0], role: p[1], sector: p[2], companyId: importCompany || null, createdAt: new Date(), addedBy: user.email }); count++;
-                    } else if (importType === 'inventory' && p.length >= 4) {
-                        batch.set(getRef('inventory').doc(), { name: p[0], complement: p[1], ca: p[2], quantity: parseInt(p[3]) || 0, createdAt: new Date(), addedBy: user.email }); count++;
+                    if (importType === 'employees' && p.length >= 1) {
+                        batch.set(getRef('employees').doc(), { name: String(p[0]), role: String(p[1]||''), sector: String(p[2]||''), companyId: importCompany || null, createdAt: new Date(), addedBy: user.email }); count++;
+                    } else if (importType === 'inventory' && p.length >= 1) {
+                        batch.set(getRef('inventory').doc(), { name: String(p[0]), complement: String(p[1]||''), ca: String(p[2]||''), quantity: parseInt(p[3]) || 0, createdAt: new Date(), addedBy: user.email }); count++;
                     }
                 }
                 await batch.commit();
@@ -1449,10 +1487,10 @@
 
             // Filter logic for employees view
             const filteredEmployees = employees.filter(e => {
-                const searchLower = (employeeSearch || '').toLowerCase();
-                const nameMatch = (e.name || '').toLowerCase().includes(searchLower);
-                const roleMatch = (e.role || '').toLowerCase().includes(searchLower);
-                const sectorMatch = (e.sector || '').toLowerCase().includes(searchLower);
+                const searchLower = String(employeeSearch || '').toLowerCase();
+                const nameMatch = String(e.name || '').toLowerCase().includes(searchLower);
+                const roleMatch = String(e.role || '').toLowerCase().includes(searchLower);
+                const sectorMatch = String(e.sector || '').toLowerCase().includes(searchLower);
                 const matchesCompany = employeeCompanyFilter === 'TODOS' || e.companyId === employeeCompanyFilter || e.company === employeeCompanyFilter;
                 return (nameMatch || roleMatch || sectorMatch) && matchesCompany;
             });
@@ -2013,7 +2051,7 @@
 
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 {employees
-                                                    .filter(e => (e.name || '').toLowerCase().includes((reportSearch||'').toLowerCase()) || (e.role || '').toLowerCase().includes((reportSearch||'').toLowerCase()))
+                                                    .filter(e => String(e.name || '').toLowerCase().includes(String(reportSearch||'').toLowerCase()) || String(e.role || '').toLowerCase().includes(String(reportSearch||'').toLowerCase()))
                                                     .map(e=>(
                                                         <button key={e.id} onClick={() => { setSelectedEmployeeForReport(e); setSelectedDeliveries([]); }} className="p-6 bg-white border border-slate-200 rounded-xl hover:shadow-md text-left transition-all relative overflow-hidden group">
                                                             <div className="absolute top-0 right-0 bg-slate-50 text-slate-400 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-xl border-b border-l border-slate-200">{getCompanyAlias(e)}</div>
@@ -2023,7 +2061,7 @@
                                                         </button>
                                                     ))
                                                 }
-                                                {employees.length > 0 && employees.filter(e => (e.name || '').toLowerCase().includes((reportSearch||'').toLowerCase())).length === 0 && (
+                                                {employees.length > 0 && employees.filter(e => String(e.name || '').toLowerCase().includes(String(reportSearch||'').toLowerCase())).length === 0 && (
                                                     <div className="col-span-3 text-center py-8 text-slate-400">Nenhum colaborador encontrado com este nome.</div>
                                                 )}
                                             </div>
@@ -2067,7 +2105,7 @@
                                                                 </div>
                                                                 <div className="text-center md:text-right w-full md:w-auto">
                                                                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Cargo / Setor</p>
-                                                                    <p className="text-lg font-bold text-slate-600">{selectedEmployeeForReport.role} &mdash; {selectedEmployeeForReport.sector}</p>
+                                                                    <p className="text-lg font-bold text-slate-600">${selectedEmployeeForReport.role} &mdash; {selectedEmployeeForReport.sector}</p>
                                                                 </div>
                                                             </div>
 
