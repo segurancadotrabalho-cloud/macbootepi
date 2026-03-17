@@ -1637,6 +1637,7 @@
                                             <thead className="bg-slate-50 text-slate-500 font-medium">
                                                 <tr>
                                                     <th className="px-6 py-4">E-mail do Cliente</th>
+                                                    <th className="px-6 py-4 text-center">Colaboradores</th>
                                                     <th className="px-6 py-4 text-center">Importar Assinatura</th>
                                                     <th className="px-6 py-4 text-center">Exigir Selfie</th>
                                                     <th className="px-6 py-4 text-right">Ações</th>
@@ -1646,6 +1647,11 @@
                                                 {adminUsers.map(u=>(
                                                     <tr key={u.id} className="hover:bg-slate-50">
                                                         <td className="px-6 py-4 font-bold text-slate-700">{u.email}</td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-black shadow-sm border border-slate-200">
+                                                                {u.employeeCount || 0} un
+                                                            </span>
+                                                        </td>
                                                         <td className="px-6 py-4 text-center">
                                                             <button onClick={() => togglePermissionField(u.id, 'canImportSignature', u.canImportSignature)} className={`px-2 py-1 rounded text-xs font-bold transition-colors ${u.canImportSignature ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
                                                                 {u.canImportSignature ? 'Sim (Desligar)' : 'Não (Ativar)'}
@@ -1659,7 +1665,7 @@
                                                         <td className="px-6 py-4 text-right"><button onClick={()=>handleDeleteAdminUser(u.id)} className="text-red-400 hover:text-red-600 p-1 bg-white border border-slate-200 rounded shadow-sm"><Icon name="Trash2" size={16}/></button></td>
                                                     </tr>
                                                 ))}
-                                                {adminUsers.length === 0 && <tr><td colSpan="4" className="text-center p-8 text-slate-400 italic">Nenhum cliente configurado.</td></tr>}
+                                                {adminUsers.length === 0 && <tr><td colSpan="5" className="text-center p-8 text-slate-400 italic">Nenhum cliente configurado.</td></tr>}
                                             </tbody>
                                         </table>
                                     </div>
