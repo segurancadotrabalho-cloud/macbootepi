@@ -63,9 +63,9 @@
         .pdf-render-container {
             position: absolute;
             top: 0;
-            left: 0;
-            width: 210mm;
-            min-height: 297mm;
+            left: -9999px; /* Tira da tela sem esconder (evita erros do html2canvas) */
+            width: 800px; /* Largura fixa força o layout a renderizar igual desktop */
+            min-height: 1123px; /* A4 em pixels */
             background-color: white;
             z-index: 9998; /* Imediatamente abaixo do overlay de loading que é 9999 */
             pointer-events: none;
@@ -745,7 +745,7 @@
                         const hasAnySelfie = empDeliveries.some(d => d.selfie);
 
                         hiddenContainer.innerHTML = `
-                            <div class="p-10 bg-white w-full h-full" id="pdf-content-wrapper">
+                            <div class="p-10 bg-white" style="width: 800px; min-height: 1123px;" id="pdf-content-wrapper">
                                 <div class="border-b-2 border-slate-900 pb-6 mb-6 flex justify-between items-start gap-6">
                                     <div>
                                         <h1 class="text-2xl font-black text-slate-900 mb-1 uppercase tracking-tighter">FICHA DE EPI</h1>
@@ -820,7 +820,7 @@
                                 margin:       10,
                                 filename:     `Ficha_EPI_${emp.name.replace(/\s+/g, '_')}.pdf`,
                                 image:        { type: 'jpeg', quality: 0.98 },
-                                html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 800 },
+                                html2canvas:  { scale: 2, useCORS: true, logging: false, width: 800, windowWidth: 800 },
                                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                             };
 
