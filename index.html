@@ -59,16 +59,19 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         #global-error { display: none; position: fixed; inset: 0; background: #fef2f2; z-index: 10000; padding: 2rem; color: #991b1b; font-family: monospace; overflow: auto; }
         
-        /* Renderizador invisível para os utilizadores, mas visível para o gerador de PDF */
-        .pdf-render-container {
+        /* Renderizador invisível para os utilizadores, mas visível para o gerador de PDF em Lote */
+        .pdf-render-wrapper {
             position: absolute;
             top: 0;
-            left: -9999px; /* Tira da tela sem esconder (evita erros do html2canvas) */
-            width: 800px; /* Largura fixa força o layout a renderizar igual desktop */
-            min-height: 1123px; /* A4 em pixels */
-            background-color: white;
-            z-index: 9998; /* Imediatamente abaixo do overlay de loading que é 9999 */
+            left: 0;
+            z-index: -9999;
+            visibility: hidden; /* Esconde o container principal... */
             pointer-events: none;
+        }
+        .pdf-render-content {
+            width: 800px; /* Força exatamente a largura do desktop */
+            background-color: white;
+            visibility: visible; /* ...mas deixa o conteúdo interno visível para o html2canvas capturar */
         }
     </style>
 </head>
@@ -730,7 +733,7 @@
                     const zip = new window.JSZip();
                     
                     const hiddenContainer = document.createElement('div');
-                    hiddenContainer.className = 'pdf-render-container';
+                    hiddenContainer.className = 'pdf-render-wrapper';
                     hiddenContainer.id = 'temp-pdf-render-container';
                     document.body.appendChild(hiddenContainer);
 
@@ -745,68 +748,70 @@
                         const hasAnySelfie = empDeliveries.some(d => d.selfie);
 
                         hiddenContainer.innerHTML = `
-                            <div class="p-10 bg-white" style="width: 800px; min-height: 1123px;" id="pdf-content-wrapper">
-                                <div class="border-b-2 border-slate-900 pb-6 mb-6 flex justify-between items-start gap-6">
-                                    <div>
-                                        <h1 class="text-2xl font-black text-slate-900 mb-1 uppercase tracking-tighter">FICHA DE EPI</h1>
-                                        <p class="text-xs font-bold text-slate-400 tracking-widest uppercase">SEGURANÇA DO TRABALHO</p>
+                            <div class="pdf-render-content" id="pdf-content-wrapper">
+                                <div class="p-10 bg-white">
+                                    <div class="border-b-2 border-slate-900 pb-6 mb-6 flex justify-between items-start gap-6">
+                                        <div>
+                                            <h1 class="text-2xl font-black text-slate-900 mb-1 uppercase tracking-tighter">FICHA DE EPI</h1>
+                                            <p class="text-xs font-bold text-slate-400 tracking-widest uppercase">SEGURANÇA DO TRABALHO</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-xs font-bold text-slate-900 uppercase">${empComp.razao}</p>
+                                            <p class="text-xs text-slate-500 font-mono">CNPJ: ${empComp.cnpj}</p>
+                                        </div>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-xs font-bold text-slate-900 uppercase">${empComp.razao}</p>
-                                        <p class="text-xs text-slate-500 font-mono">CNPJ: ${empComp.cnpj}</p>
-                                    </div>
-                                </div>
 
-                                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 flex justify-between items-center mb-6">
-                                    <div class="text-left w-auto">
-                                        <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Colaborador Titular</p>
-                                        <p class="text-2xl font-black text-slate-900 tracking-tight">${emp.name}</p>
+                                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 flex justify-between items-center mb-6">
+                                        <div class="text-left w-auto">
+                                            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Colaborador Titular</p>
+                                            <p class="text-2xl font-black text-slate-900 tracking-tight">${emp.name}</p>
+                                        </div>
+                                        <div class="text-right w-auto">
+                                            <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Cargo / Setor</p>
+                                            <p class="text-lg font-bold text-slate-600">${emp.role} &mdash; ${emp.sector}</p>
+                                        </div>
                                     </div>
-                                    <div class="text-right w-auto">
-                                        <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Cargo / Setor</p>
-                                        <p class="text-lg font-bold text-slate-600">${emp.role} &mdash; ${emp.sector}</p>
+
+                                    <div class="bg-white border-l-4 border-slate-900 pl-4 py-1.5 text-[11px] text-slate-700 mb-6 text-justify leading-snug">
+                                        <strong>TERMO DE RESPONSABILIDADE:</strong> Declaro ter recebido os Equipamentos de Proteção Individual listados abaixo em perfeito estado de conservação e funcionamento. Assumo o compromisso de os utilizar obrigatoriamente durante toda a minha jornada de trabalho, zelar pela sua guarda e conservação, e comunicar imediatamente a minha chefia sobre qualquer alteração que os torne impróprios para uso, estando ciente das penalidades previstas na lei e nas normas de Segurança do Trabalho.
                                     </div>
-                                </div>
 
-                                <div class="bg-white border-l-4 border-slate-900 pl-4 py-1.5 text-[11px] text-slate-700 mb-6 text-justify leading-snug">
-                                    <strong>TERMO DE RESPONSABILIDADE:</strong> Declaro ter recebido os Equipamentos de Proteção Individual listados abaixo em perfeito estado de conservação e funcionamento. Assumo o compromisso de os utilizar obrigatoriamente durante toda a minha jornada de trabalho, zelar pela sua guarda e conservação, e comunicar imediatamente a minha chefia sobre qualquer alteração que os torne impróprios para uso, estando ciente das penalidades previstas na lei e nas normas de Segurança do Trabalho.
-                                </div>
-
-                                <table class="w-full border-collapse" style="table-layout: fixed;">
-                                    <thead>
-                                        <tr class="bg-slate-100">
-                                            <th class="border-y-4 border-black p-4 text-left font-black text-xs uppercase tracking-widest" style="width: 15%">Data</th>
-                                            <th class="border-y-4 border-black p-4 text-left font-black text-xs uppercase tracking-widest" style="width: 35%">Descrição do Equipamento</th>
-                                            <th class="border-y-4 border-black p-4 text-center font-black text-xs uppercase tracking-widest" style="width: 15%">CA. Reg.</th>
-                                            <th class="border-y-4 border-black p-4 text-center font-black text-xs uppercase tracking-widest" style="width: 10%">Qtd</th>
-                                            <th class="border-y-4 border-black p-4 text-center font-black text-xs uppercase tracking-widest" style="width: 25%">Assinatura Digital</th>
-                                            ${hasAnySelfie ? `<th class="border-y-4 border-black p-4 text-center font-black text-xs uppercase tracking-widest" style="width: 15%">Validação</th>` : ''}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${empDeliveries.map((del, i) => `
-                                            <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}">
-                                                <td class="border-b border-slate-200 p-4 font-black text-sm">${renderDateOnly(del.createdAt)}</td>
-                                                <td class="border-b border-slate-200 p-4 font-black text-slate-800 text-sm uppercase tracking-tight break-words">${del.epiName}</td>
-                                                <td class="border-b border-slate-200 p-4 text-center font-mono font-bold text-slate-500">${del.epiCA}</td>
-                                                <td class="border-b border-slate-200 p-4 text-center font-black text-lg">${del.quantityDelivered}</td>
-                                                <td class="border-b border-slate-200 p-4 text-center align-middle">
-                                                    <img src="${del.signature}" style="max-height: 40px; max-width: 100px; display: block; margin: 0 auto; filter: contrast(1.2) grayscale(1);" alt="Assinatura" />
-                                                </td>
-                                                ${hasAnySelfie ? `
-                                                    <td class="border-b border-slate-200 p-4 text-center align-middle">
-                                                        ${del.selfie 
-                                                            ? `<img src="${del.selfie}" style="max-height: 40px; max-width: 40px; object-fit: cover; border-radius: 4px; display: block; margin: 0 auto;" alt="Foto Validação" />` 
-                                                            : `<span class="text-slate-300 text-xs italic">-</span>`
-                                                        }
-                                                    </td>
-                                                ` : ''}
+                                    <table class="w-full border-collapse" style="table-layout: fixed;">
+                                        <thead>
+                                            <tr class="bg-slate-100">
+                                                <th class="border-y-4 border-black p-4 text-left font-black text-xs uppercase tracking-widest" style="width: 15%">Data</th>
+                                                <th class="border-y-4 border-black p-4 text-left font-black text-xs uppercase tracking-widest" style="width: 35%">Descrição do Equipamento</th>
+                                                <th class="border-y-4 border-black p-4 text-center font-black text-xs uppercase tracking-widest" style="width: 15%">CA. Reg.</th>
+                                                <th class="border-y-4 border-black p-4 text-center font-black text-xs uppercase tracking-widest" style="width: 10%">Qtd</th>
+                                                <th class="border-y-4 border-black p-4 text-center font-black text-xs uppercase tracking-widest" style="width: 25%">Assinatura Digital</th>
+                                                ${hasAnySelfie ? `<th class="border-y-4 border-black p-4 text-center font-black text-xs uppercase tracking-widest" style="width: 15%">Validação</th>` : ''}
                                             </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                                <div class="mt-10 pt-4 border-t-2 border-dashed border-slate-300 text-center">
-                                    <p class="text-[9px] font-mono font-medium text-slate-500">Documento gerado eletronicamente. Validade jurídica assegurada pela <strong>MP nº 2.200-2/2001</strong>, <strong>Lei nº 14.063/2020</strong> e em conformidade com a <strong>NR-06 (Portaria MTP nº 672/2021)</strong>. A integridade desta ficha é mantida através de logs de auditoria selados pelo servidor.</p>
+                                        </thead>
+                                        <tbody>
+                                            ${empDeliveries.map((del, i) => `
+                                                <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}">
+                                                    <td class="border-b border-slate-200 p-4 font-black text-sm">${renderDateOnly(del.createdAt)}</td>
+                                                    <td class="border-b border-slate-200 p-4 font-black text-slate-800 text-sm uppercase tracking-tight break-words">${del.epiName}</td>
+                                                    <td class="border-b border-slate-200 p-4 text-center font-mono font-bold text-slate-500">${del.epiCA}</td>
+                                                    <td class="border-b border-slate-200 p-4 text-center font-black text-lg">${del.quantityDelivered}</td>
+                                                    <td class="border-b border-slate-200 p-4 text-center align-middle">
+                                                        <img src="${del.signature}" style="max-height: 40px; max-width: 100px; display: block; margin: 0 auto; filter: contrast(1.2) grayscale(1);" alt="Assinatura" />
+                                                    </td>
+                                                    ${hasAnySelfie ? `
+                                                        <td class="border-b border-slate-200 p-4 text-center align-middle">
+                                                            ${del.selfie 
+                                                                ? `<img src="${del.selfie}" style="max-height: 40px; max-width: 40px; object-fit: cover; border-radius: 4px; display: block; margin: 0 auto;" alt="Foto Validação" />` 
+                                                                : `<span class="text-slate-300 text-xs italic">-</span>`
+                                                            }
+                                                        </td>
+                                                    ` : ''}
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                    <div class="mt-10 pt-4 border-t-2 border-dashed border-slate-300 text-center">
+                                        <p class="text-[9px] font-mono font-medium text-slate-500">Documento gerado eletronicamente. Validade jurídica assegurada pela <strong>MP nº 2.200-2/2001</strong>, <strong>Lei nº 14.063/2020</strong> e em conformidade com a <strong>NR-06 (Portaria MTP nº 672/2021)</strong>. A integridade desta ficha é mantida através de logs de auditoria selados pelo servidor.</p>
+                                    </div>
                                 </div>
                             </div>
                         `;
@@ -820,7 +825,7 @@
                                 margin:       10,
                                 filename:     `Ficha_EPI_${emp.name.replace(/\s+/g, '_')}.pdf`,
                                 image:        { type: 'jpeg', quality: 0.98 },
-                                html2canvas:  { scale: 2, useCORS: true, logging: false, width: 800, windowWidth: 800 },
+                                html2canvas:  { scale: 2, useCORS: true, logging: false },
                                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                             };
 
